@@ -103,9 +103,9 @@ public class LSMTree implements KVStorage<ByteArray, byte[]> {
 	 * Search in-memory first, then disk
 	 */
 	@Override
-	public String get(ByteArray key) {
+	public byte[] get(ByteArray key) {
 		if (memtable.containsKey(key))
-			return new String(memtable.get(key));
+			return memtable.get(key);
 
 		logger.debug("Key not in memtable");
 
@@ -116,7 +116,7 @@ public class LSMTree implements KVStorage<ByteArray, byte[]> {
 
 			if (skiplist.containsKey(key)) {
 				logger.debug("Key found in older memtable");
-				return new String(skiplist.get(key));
+				return skiplist.get(key);
 			}
 		}
 
@@ -130,7 +130,7 @@ public class LSMTree implements KVStorage<ByteArray, byte[]> {
 	 * is restricted to 4MB
 	 */
 	@Override
-	public String set(ByteArray key, byte[] val) {
+	public byte[] set(ByteArray key, byte[] val) {
 		// start memtable flusher thread
 		if (curSkipListSize >= maxSkipListSize) {
 			memtableQueue.add(memtable);
@@ -140,23 +140,23 @@ public class LSMTree implements KVStorage<ByteArray, byte[]> {
 		}
 
 		if (key.length() > 255)
-			return "Error: Key too long. Max allowed size is 256";
+			return "Error: Key too long. Max allowed size is 256".getBytes();
 
 		if (val.length > K.VALUE_MAX_SIZE)
-			return "Error: Value too long. Max allowed size is 4MB";
+			return "Error: Value too long. Max allowed size is 4MB".getBytes();
 
 		memtable.put(key, val);
 		curSkipListSize += key.length() + val.length;
 
-		return "ok";
+		return "ok".getBytes();
 	}
 
 	/**
 	 * Delete key from data store
 	 */
 	@Override
-	public String del(ByteArray key) {
+	public byte[] del(ByteArray key) {
 		memtable.put(key, new byte[] {});
-		return "ok";
+		return "ok".getBytes();
 	}
 }

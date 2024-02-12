@@ -55,7 +55,7 @@ public class SSTable {
 	 * @param key search key
 	 * @return value for the key
 	 */
-	public String search(ByteArray key) {
+	public byte[] search(ByteArray key) {
 		int level = 0;
 		
 		// sorted newest first
@@ -81,7 +81,7 @@ public class SSTable {
 						byte[] keyData = readObject(raf, offset, Record.KEY);
 						byte[] value = readObject(raf, offset + keyData.length + Record.KEY.length, Record.VALUE);
 						
-						return new String(FileOps.decompress(value), "UTF-8");
+						return FileOps.decompress(value);
 					}
 				} catch (IOException e) {
 					logger.warn("Error reading data: {}", e.getMessage());
@@ -93,7 +93,7 @@ public class SSTable {
 			Arrays.sort(indexFiles, Comparator.comparingLong(File::lastModified));
 		}
 		logger.debug("Key not found");
-		return "";
+		return new byte[] {};
 	}
 
 	/**

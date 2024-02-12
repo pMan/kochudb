@@ -8,9 +8,9 @@ package com.kochudb.types;
  */
 public interface KVStorage<K extends Comparable<K>, V> {
 	
-	public String get(K key);
+	public V get(K key);
 
-	public String set(K key, V val);
+	public V set(K key, V val);
 
-	public String del(K key);
+	public V del(K key);
 }

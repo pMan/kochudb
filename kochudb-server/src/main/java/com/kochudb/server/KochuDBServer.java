@@ -14,6 +14,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.kochudb.shared.Request;
+import com.kochudb.shared.Response;
 import com.kochudb.types.ByteArray;
 import com.kochudb.types.KVStorage;
 import com.kochudb.types.LSMTree;
@@ -48,7 +49,7 @@ public class KochuDBServer extends Thread {
 		if (args.length == 1)
 			prop.setProperty("srver.port", args[0]);
 
-		setName("socket-listener");
+		setName("front-end");
 		
 		port = Integer.parseInt(prop.getProperty("server.port"));
 		
@@ -66,15 +67,17 @@ public class KochuDBServer extends Thread {
 				ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
 				Request req = (Request) ois.readObject();
 
-				String response = switch (req.getCommand()) {
+				byte[] response = switch (req.getCommand()) {
 				case "get" -> storageEngine.get(new ByteArray(req.getKey()));
 				case "set" -> storageEngine.set(new ByteArray(req.getKey()), req.getValue().getBytes());
 				case "del" -> storageEngine.del(new ByteArray(req.getKey()));
-				default -> "Invalid Operation";
+				default -> "Invalid Operation".getBytes();
 				};
 
 				ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-				oos.writeObject(response);
+				Response resp = new Response(req);
+				resp.setData(new String(response, "utf-8"));
+				oos.writeObject(resp);
 			} catch (SocketException se) {
 				System.out.println((alive == false) ? "Server shut down gracefully" : se.getMessage());
 			} catch (Exception e) {

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.Properties;
 
 import org.junit.jupiter.api.AfterAll;
@@ -35,17 +36,17 @@ class LSMTreeTest {
 	}
 
 	@Test
-	void testSetAndGet() {
+	void testSetAndGet() throws UnsupportedEncodingException {
 		ByteArray key = new ByteArray("Key".getBytes());
 		byte[] val = "Val".getBytes();
-		String result = LSMTreeTest.lsmt.set(key, val);
+		byte[] result = LSMTreeTest.lsmt.set(key, val);
 		
-		assertEquals("ok", result);
-		assertEquals("Val", LSMTreeTest.lsmt.get(key));
+		assertEquals("ok", new String(result, "utf-8"));
+		assertEquals("Val", new String(LSMTreeTest.lsmt.get(key), "utf-8"));
 	}
 	
 	@Test
-	void testGetNonExistingKey() {
-		assertEquals("", LSMTreeTest.lsmt.get(new ByteArray("non-existing-key")));
+	void testGetNonExistingKey() throws UnsupportedEncodingException {
+		assertEquals("", new String(LSMTreeTest.lsmt.get(new ByteArray("non-existing-key")), "utf-8"));
 	}
 }
