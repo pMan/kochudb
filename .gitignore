@@ -22,3 +22,19 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+# eclipse and temp files
+cli-client/.settings
+cli-client/.classpath
+cli-client/.project
+cli-client/target*
+kochudb-server/.settings
+kochudb-server/.classpath
+kochudb-server/.project
+kochudb-server/target
+kochudb-server/data*
+kochudb-server/src/main/java/com/kochudb/server/Test.java
+cli-client/src/main/java/com/kochudb/client/DataIngestor.java
+.settings
+.classpath
+.project
