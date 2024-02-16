@@ -1,4 +1,4 @@
-package com.kochudb.util;
+package com.kochudb.k;
 
 public final class K {
 	

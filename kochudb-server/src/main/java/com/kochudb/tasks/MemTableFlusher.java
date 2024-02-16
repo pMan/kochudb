@@ -4,28 +4,30 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.lang.invoke.MethodHandles;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.concurrent.ConcurrentSkipListMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.kochudb.io.FileOps;
+import com.kochudb.io.FileIO;
+import com.kochudb.k.Record;
 import com.kochudb.types.ByteArray;
-import com.kochudb.types.Record;
 import com.kochudb.types.SSTable;
+import com.kochudb.types.Skiplist;
+import com.kochudb.types.SkiplistNode;
 
 public class MemTableFlusher implements Runnable {
 
 	private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
 
-	Deque<ConcurrentSkipListMap<ByteArray, byte[]>> memTableQueue;
+	Deque<Skiplist> memTableQueue;
 	
 	// key and the offset where the record is stored in file
 	Map<ByteArray, Long> keyToOffsetMap;
 
-	public MemTableFlusher(Deque<ConcurrentSkipListMap<ByteArray, byte[]>> memTableQueue) {
+	public MemTableFlusher(Deque<Skiplist> memTableQueue) {
 		this.memTableQueue = memTableQueue;
 	}
 
@@ -33,23 +35,27 @@ public class MemTableFlusher implements Runnable {
 	public void run() {
 		while (!memTableQueue.isEmpty()) {
 			try {
-				ConcurrentSkipListMap<ByteArray, byte[]> skipList = memTableQueue.peekFirst();
+				Skiplist skipList = memTableQueue.peekFirst();
 				
 				keyToOffsetMap = new TreeMap<ByteArray, Long>();
 				
-				String[] filenames = FileOps.createNewIdxAndDataFilenames(0);
+				String[] filenames = FileIO.createNewIdxAndDataFilenames(0);
 				String indexfilePath = filenames[0];
 				String datafilePath = filenames[1];
 
 				logger.info("Flushing to file: {}", datafilePath);
 				
 				try (RandomAccessFile dataFile = new RandomAccessFile(datafilePath, "rw")) {
-					for (ByteArray key : skipList.keySet()) {
+					Iterator<SkiplistNode> iter = skipList.iterator();
+					
+					while (iter.hasNext()) {
+						SkiplistNode node = iter.next();
+						ByteArray key = node.getKey();
 						
-						byte[] keyBytes = FileOps.compress(key.getBytes());
+						byte[] keyBytes = FileIO.compress(key.getBytes());
 						long keyOffset = SSTable.appendData(dataFile, keyBytes, Record.KEY);
 
-						byte[] valBytes = FileOps.compress(skipList.get(key));
+						byte[] valBytes = FileIO.compress(node.getValue());
 						SSTable.appendData(dataFile, valBytes, Record.VALUE);
 						keyToOffsetMap.put(key, keyOffset);
 					}

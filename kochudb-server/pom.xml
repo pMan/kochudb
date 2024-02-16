@@ -5,7 +5,6 @@
 	
 	<groupId>com.kochudb.server</groupId>
 	<artifactId>kochudb-server</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
 	
 	<name>KochuDB Server</name>
 	<description>LSM Tree based key-value data store</description>

@@ -14,8 +14,11 @@ import com.kochudb.shared.Response;
 
 public class Client {
 	public static boolean alive = true;
+	
 	private static final Set<String> validInput = new HashSet<>(Arrays.asList("get", "set", "del"));
 
+	private static final String usage = "|| KochuDB client ||\nUsage help:\n\tset <key> <val>\n\tget <key>\n\tdel <key>\n\n";
+	
 	static Socket socket = null;
 
 	public static void main(String[] args) {
@@ -26,10 +29,14 @@ public class Client {
 			}
 		});
 
+		System.out.print(usage);
 		System.out.print("> Type \"bye\" to exit\n");
+		
 		Scanner scanner = new Scanner(System.in);
 		String input = null;
+		
 		System.out.print("> ");
+		
 		while (alive && scanner.hasNextLine()) {
 			try {
 				input = scanner.nextLine().trim();

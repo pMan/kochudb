@@ -7,8 +7,8 @@ public class ByteArray implements Comparable<ByteArray> {
 
 	byte[] byteArray;
 	
-	public ByteArray(String s) {
-		byteArray = s.getBytes();
+	public ByteArray(String t) {
+		byteArray = t.getBytes();
 	}
 	
 	public ByteArray(byte[] bytes) {
@@ -25,14 +25,14 @@ public class ByteArray implements Comparable<ByteArray> {
 	
 	@Override
 	public int compareTo(ByteArray o) {
-		for (int i = 0, j = 0; i < this.byteArray.length && j < o.byteArray.length; i++, j++) {
+		for (int i = 0, j = 0; i < this.byteArray.length && j < o.length(); i++, j++) {
             int a = (this.byteArray[i] & 0xff);
-            int b = (o.byteArray[j] & 0xff);
+            int b = (o.getBytes()[j] & 0xff);
             if (a != b) {
                 return a - b;
             }
         }
-		return this.byteArray.length - o.byteArray.length;
+		return this.byteArray.length - o.length();
 	}
 
 	public byte[] getBytes() {

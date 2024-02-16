@@ -1,4 +1,4 @@
-package com.kochudb.types;
+package com.kochudb.server;
 
 /**
  * Key-Value based storage engine

@@ -15,11 +15,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.kochudb.io.FileOps;
+import com.kochudb.io.FileIO;
+import com.kochudb.k.K;
+import com.kochudb.k.Record;
 import com.kochudb.types.ByteArray;
-import com.kochudb.types.Record;
 import com.kochudb.types.SSTable;
-import com.kochudb.util.K;
 
 public class LevelCompactor implements Runnable {
 
@@ -85,7 +85,7 @@ public class LevelCompactor implements Runnable {
 	 * @throws IOException
 	 */
 	void compactLevel(int level) {
-		File[] files = FileOps.findFiles(dataDirectory, level);
+		File[] files = FileIO.findFiles(dataDirectory, level);
 		
 		// oldest file first
 		Arrays.sort(files, Comparator.comparingLong(File::lastModified));
@@ -167,7 +167,7 @@ public class LevelCompactor implements Runnable {
 		
 		logger.debug("Merged index files {}, {}", file1.getName(), file2.getName());
 		
-		String[] filenames = FileOps.createNewIdxAndDataFilenames(curLevel + 1);
+		String[] filenames = FileIO.createNewIdxAndDataFilenames(curLevel + 1);
 		String newIdxFilename = filenames[0].replaceFirst(".idx$", ".idxtmp");
 		String newDatFilename = filenames[1];
 		
@@ -178,8 +178,8 @@ public class LevelCompactor implements Runnable {
 			Map<ByteArray, Long> updatedIdxMap = new HashMap<ByteArray, Long>();
 			Map<File, RandomAccessFile> openedFiles = new HashMap<File, RandomAccessFile>();
 			
-			openedFiles.put(file1, FileOps.createDatFromIdx(file1.getAbsolutePath()));
-			openedFiles.put(file2, FileOps.createDatFromIdx(file2.getAbsolutePath()));
+			openedFiles.put(file1, FileIO.createDatFromIdx(file1.getAbsolutePath()));
+			openedFiles.put(file2, FileIO.createDatFromIdx(file2.getAbsolutePath()));
 			
 			logger.debug("Writing to merged data file: {}", newDatFilename);
 			

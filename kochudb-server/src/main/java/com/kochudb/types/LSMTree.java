@@ -7,7 +7,6 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -16,9 +15,10 @@ import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.kochudb.k.K;
+import com.kochudb.server.KVStorage;
 import com.kochudb.tasks.LevelCompactor;
 import com.kochudb.tasks.MemTableFlusher;
-import com.kochudb.util.K;
 
 /**
  * LSM Tree implementing basic operation on data store
@@ -30,12 +30,12 @@ public class LSMTree implements KVStorage<ByteArray, byte[]> {
 	/**
 	 * SkipList for in-memory data
 	 */
-	ConcurrentSkipListMap<ByteArray, byte[]> memtable;
+	Skiplist memtable;
 
 	/**
 	 * Deque of memtables Deque is for handling failures by flushing thread
 	 */
-	Deque<ConcurrentSkipListMap<ByteArray, byte[]>> memtableQueue;
+	Deque<Skiplist> memtableQueue;
 
 	/**
 	 * Reference to SSTable instance
@@ -82,10 +82,11 @@ public class LSMTree implements KVStorage<ByteArray, byte[]> {
 		 * search thread and memtable-flush thread can perform one or both of the below
 		 * operations concurrently: iterate the queue holding skiplists, or iterate the skiplist
 		 */
-		memtableQueue = new ConcurrentLinkedDeque<ConcurrentSkipListMap<ByteArray, byte[]>>();
+		memtableQueue = new ConcurrentLinkedDeque<>();
 		
-		memtable = new ConcurrentSkipListMap<ByteArray, byte[]>(new ByteArrayComparator());
-
+		//memtable = new ConcurrentSkipListMap<ByteArray, byte[]>(new ByteArrayComparator());
+		memtable = new Skiplist();
+		
 		ssTable = new SSTable(dataDir);
 
 		memtableExecutor = Executors.newSingleThreadExecutor((runnable) -> {
@@ -105,18 +106,18 @@ public class LSMTree implements KVStorage<ByteArray, byte[]> {
 	@Override
 	public byte[] get(ByteArray key) {
 		if (memtable.containsKey(key))
-			return memtable.get(key);
+			return (byte[]) memtable.get(key).val;
 
 		logger.debug("Key not in memtable");
 
-		Iterator<ConcurrentSkipListMap<ByteArray, byte[]>> iter = memtableQueue.descendingIterator();
+		Iterator<Skiplist> iter = memtableQueue.descendingIterator();
 
 		while (iter.hasNext()) {
-			ConcurrentSkipListMap<ByteArray, byte[]> skiplist = iter.next();
+			Skiplist skiplist = iter.next();
 
 			if (skiplist.containsKey(key)) {
 				logger.debug("Key found in older memtable");
-				return skiplist.get(key);
+				return (byte[]) skiplist.get(key).val;
 			}
 		}
 
@@ -134,7 +135,7 @@ public class LSMTree implements KVStorage<ByteArray, byte[]> {
 		// start memtable flusher thread
 		if (curSkipListSize >= maxSkipListSize) {
 			memtableQueue.add(memtable);
-			memtable = new ConcurrentSkipListMap<ByteArray, byte[]>();
+			memtable = new Skiplist();
 			memtableExecutor.submit(new MemTableFlusher(memtableQueue));
 			curSkipListSize = 0;
 		}

@@ -6,7 +6,7 @@ import java.lang.invoke.MethodHandles;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.kochudb.util.K;
+import com.kochudb.k.K;
 
 /**
  * Main class.

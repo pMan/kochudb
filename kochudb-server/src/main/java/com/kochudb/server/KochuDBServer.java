@@ -13,12 +13,11 @@ import java.util.Properties;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.kochudb.k.K;
 import com.kochudb.shared.Request;
 import com.kochudb.shared.Response;
 import com.kochudb.types.ByteArray;
-import com.kochudb.types.KVStorage;
 import com.kochudb.types.LSMTree;
-import com.kochudb.util.K;
 
 public class KochuDBServer extends Thread {
 	private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());

@@ -1,4 +1,4 @@
-package com.kochudb.types;
+package com.kochudb.k;
 
 /**
  * for representing record key and value

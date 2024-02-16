@@ -5,7 +5,6 @@
 	
 	<groupId>com.kochudb.client</groupId>
 	<artifactId>cli-client</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
 	
 	<name>KochuDB CLI client</name>
 	<description>Client CLI for KochuDB Server</description>

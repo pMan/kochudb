@@ -15,8 +15,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.kochudb.io.FileOps;
-import com.kochudb.util.K;
+import com.kochudb.io.FileIO;
+import com.kochudb.k.K;
+import com.kochudb.k.Record;
 
 /**
  * MemTable and SSTable operations
@@ -59,7 +60,7 @@ public class SSTable {
 		int level = 0;
 		
 		// sorted newest first
-		File[] indexFiles = FileOps.findFiles(basePath, level);
+		File[] indexFiles = FileIO.findFiles(basePath, level);
 		Arrays.sort(indexFiles, Comparator.comparingLong(File::lastModified));
 		
 		while (indexFiles.length > 0 || level <= K.NUM_LEVELS) {
@@ -81,7 +82,7 @@ public class SSTable {
 						byte[] keyData = readObject(raf, offset, Record.KEY);
 						byte[] value = readObject(raf, offset + keyData.length + Record.KEY.length, Record.VALUE);
 						
-						return FileOps.decompress(value);
+						return FileIO.decompress(value);
 					}
 				} catch (IOException e) {
 					logger.warn("Error reading data: {}", e.getMessage());
@@ -89,7 +90,7 @@ public class SSTable {
 				}
 			}
 			level++;
-			indexFiles = FileOps.findFiles(basePath, level);
+			indexFiles = FileIO.findFiles(basePath, level);
 			Arrays.sort(indexFiles, Comparator.comparingLong(File::lastModified));
 		}
 		logger.debug("Key not found");
@@ -113,7 +114,7 @@ public class SSTable {
 				byte[] keyBytes = entry.getKey().getBytes();
 				Long value = entry.getValue();
 				
-				byte[] offsetBytes = FileOps.longToBytes(value);
+				byte[] offsetBytes = FileIO.longToBytes(value);
 				byte[] recWithSize = new byte[keyBytes.length + 9];
 
 				recWithSize[0] = (byte) keyBytes.length;
@@ -153,7 +154,7 @@ public class SSTable {
 				// offset where the key resides
 				byte[] nextEightBytes = new byte[8];
 				raf.read(nextEightBytes, 0, 8);
-				long offset = FileOps.bytesToLong(nextEightBytes);
+				long offset = FileIO.bytesToLong(nextEightBytes);
 
 				keyToOffset.put(new ByteArray(key), offset);
 			}
@@ -181,7 +182,7 @@ public class SSTable {
 
 		dataFile.seek(offset);
 		
-		byte[] headerArray = FileOps.intToBytes(headerLen, data.length);
+		byte[] headerArray = FileIO.intToBytes(headerLen, data.length);
 		System.arraycopy(headerArray, 0, bytes, 0, headerLen);
 		
 		System.arraycopy(data, 0, bytes, headerLen, data.length);
@@ -205,7 +206,7 @@ public class SSTable {
 		
 		byte[] header = new byte[objectType.length];
 		raf.read(header, 0, objectType.length);
-		int lenOfData = FileOps.bytesToInt(header);
+		int lenOfData = FileIO.bytesToInt(header);
 
 		byte[] data = new byte[lenOfData];
 		raf.read(data, 0, lenOfData);

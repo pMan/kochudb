@@ -10,7 +10,7 @@ import java.util.Arrays;
 
 import com.kochudb.types.LSMTree;
 
-public class FileOps {
+public class FileIO {
 
 	/**
 	 * find all files identified by a matching file name pattern from the given dir
@@ -59,7 +59,7 @@ public class FileOps {
 	}
 	
 	public static String[] createNewIdxAndDataFilenames(int level) {
-		String newFilename = FileOps.generateFilename();
+		String newFilename = FileIO.generateFilename();
 		String newIdxFilename = newFilename + ".idx";
 		
 		File newIdxFile = new File(newIdxFilename.replaceAll("([0-9]+.[0-9]+)(?=.idx)", "l" + level + "_$1"));
