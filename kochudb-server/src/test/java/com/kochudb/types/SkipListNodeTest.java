@@ -12,14 +12,14 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 @TestInstance(Lifecycle.PER_CLASS)
-class SkiplistNodeTest {
+class SkipListNodeTest {
 
-	SkiplistNode node;
+	SkipListNode node;
 	
 	@BeforeAll
 	public void setUpBeforeAll() {
-		node = new SkiplistNode(new ByteArray("Key".getBytes()), "Value".getBytes());
-		node.right = new SkiplistNode(null, null);
+		node = new SkipListNode(new ByteArray("Key".getBytes()), "Value".getBytes());
+		node.right = new SkipListNode(null, null);
 	}
 
 	@BeforeEach

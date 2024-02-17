@@ -4,48 +4,47 @@ import java.util.Iterator;
 import java.util.Random;
 
 /**
- * Skiplist is a probabilistic list that offers average O(log n) runtime
+ * SkipList is a probabilistic list that offers average O(log n) runtime
  * for insert, search, delete and update operations.
- * 
  * Coin toss probability is always 0.5 in this implementation
  */
-public class Skiplist {
+public class SkipList {
 
 	// initial nodes, sentinel references head
-	SkiplistNode head, tail, sentinel;
-	
-	// number of levels, and length of skiplist
+	SkipListNode head, tail, sentinel;
+
+	// number of levels, and length of SkipList
 	int levels, length;
-	
+
 	// probability function
 	Random prob;
 
 	/**
 	 * Constructor
 	 */
-	public Skiplist() {
-		head = new SkiplistNode(null, null);
-		tail = new SkiplistNode(null, null);
-		
+	public SkipList() {
+		head = new SkipListNode(null, null);
+		tail = new SkipListNode(null, null);
+
 		head.right = tail;
 		tail.left = head;
-		
+
 		levels = 0;
 		length = 0;
 		prob = new Random();
-		
+
 		sentinel = head;
 	}
 
 	/**
-	 * find the SkiplistNode by the key. If not present in skiplist, find the immediate left
-	 * SkiplistNode which has the floor value of key (floorSkiplistNode(key))
+	 * find the SkipListNode by the key. If not present in SkipList, find the immediate left
+	 * SkipListNode which has the floor value of key (floorSkipListNode(key))
 	 *
 	 * @param key key
-	 * @return a SkiplistNode with the 'key' of floor(key)
+	 * @return a SkipListNode with the 'key' of floor(key)
 	 */
-	public SkiplistNode find(ByteArray key) {
-		SkiplistNode cur = head;
+	public SkipListNode find(ByteArray key) {
+		SkipListNode cur = head;
 
 		while (true) {
 			while (cur.right.key != null && cur.right.key.compareTo(key) <= 0)
@@ -60,40 +59,40 @@ public class Skiplist {
 	}
 
 	/**
-	 * find a SkiplistNode with input key as key and return it. If not present, return null;
+	 * find a SkipListNode with input key as key and return it. If not present, return null;
 	 *
 	 * @param key key
-	 * @return a SkiplistNode or null
+	 * @return a SkipListNode or null
 	 */
-	public SkiplistNode get(ByteArray key) {
-		SkiplistNode found = find(key);
+	public SkipListNode get(ByteArray key) {
+		SkipListNode found = find(key);
 
-		if (found.key.compareTo(key) == 0)
+		if (found.key != null && found.key.compareTo(key) == 0)
 			return found;
 
 		return null;
 	}
 
 	public boolean containsKey(ByteArray key) {
-		SkiplistNode node = find(key);
+		SkipListNode node = find(key);
 		return node.key != null && node.key.compareTo(key) == 0;
 	}
-	
+
 	/**
-	 * add a new SkiplistNode if a SkiplistNode with same key was not found. Update if a SkiplistNode with
-	 * same key was found.
+	 * add a new SkipListNode if a SkipListNode with same key was not found. Update if a
+	 * SkipListNode with same key was found.
 	 *
 	 * @param key key
 	 * @param val value
 	 */
 	public void put(ByteArray key, byte[] val) {
-		SkiplistNode found = find(key);
+		SkipListNode found = find(key);
 		if (found.key != null && found.key.compareTo(key) == 0) {
 			found.val = val;
 			return;
 		}
 
-		SkiplistNode cur = new SkiplistNode(key, val);
+		SkipListNode cur = new SkipListNode(key, val);
 
 		insertRight(found, cur);
 
@@ -109,23 +108,23 @@ public class Skiplist {
 
 			found = found.up;
 
-			cur = addNewSkiplistNodeToTower(found, cur);
+			cur = addNewSkipListNodeToTower(found, cur);
 			curLevel++;
 		}
 		length++;
 	}
 
 	/**
-	 * delete the SkiplistNode identified by the key
+	 * delete the SkipListNode identified by the key
 	 *
 	 * @param key key
-	 * @return true if a SkiplistNode was removed, false if SkiplistNode was not found
+	 * @return true if a SkipListNode was removed, false if SkipListNode was not found
 	 */
 	public boolean del(ByteArray key) {
-		SkiplistNode found = find(key);
+		SkipListNode found = find(key);
 		if (found.key != null && found.key.compareTo(key) == 0) {
 			while (found != null) {
-				unlinkSkiplistNode(found);
+				unlinkSkipListNode(found);
 				found = found.up;
 			}
 			length--;
@@ -136,10 +135,10 @@ public class Skiplist {
 
 	/**
 	 * remove left, right, down references
-	 * 
-	 * @param SkiplistNode
+	 *
+	 * @param node skipListNode
 	 */
-	void unlinkSkiplistNode(SkiplistNode node) {
+	void unlinkSkipListNode(SkipListNode node) {
 		node.left.right = node.right;
 		node.right.left = node.left;
 
@@ -152,8 +151,8 @@ public class Skiplist {
 	 * add a new layer to the top
 	 */
 	void addNewLayer() {
-		SkiplistNode h = new SkiplistNode(null, null);
-		SkiplistNode t = new SkiplistNode(null, null);
+		SkipListNode h = new SkipListNode(null, null);
+		SkipListNode t = new SkipListNode(null, null);
 
 		h.right = t;
 		h.down = head;
@@ -171,12 +170,12 @@ public class Skiplist {
 	/**
 	 * add dummy right of p, above q
 	 *
-	 * @param p
-	 * @param q
-	 * @return
+	 * @param p SkipListNode
+	 * @param q SkipListNode
+	 * @return SkipListNode
 	 */
-	SkiplistNode addNewSkiplistNodeToTower(SkiplistNode p, SkiplistNode q) {
-		SkiplistNode dummy = new SkiplistNode(q.key, null);
+	SkipListNode addNewSkipListNodeToTower(SkipListNode p, SkipListNode q) {
+		SkipListNode dummy = new SkipListNode(q.key, null);
 
 		dummy.left = p;
 		dummy.right = p.right;
@@ -191,11 +190,11 @@ public class Skiplist {
 
 	/**
 	 * insert q to the right of p
-	 * 
-	 * @param p
-	 * @param q
+	 *
+	 * @param p SkipListNode
+	 * @param q SkipListNode
 	 */
-	void insertRight(SkiplistNode p, SkiplistNode q) {
+	void insertRight(SkipListNode p, SkipListNode q) {
 		p.right.left = q;
 		q.right = p.right;
 
@@ -206,47 +205,47 @@ public class Skiplist {
 
 	/**
 	 * Not implementing iterable interface, but provides one on-demand
-	 * 
-	 * @return Iterable<SkiplistNode>
+	 *
+	 * @return Iterable<SkipListNode>
 	 */
-	public Iterator<SkiplistNode> iterator() {
-		
-		return new Iterator<SkiplistNode>() {
-			SkiplistNode currentNode;
-			
-			public Iterator<SkiplistNode> init() {
+	public Iterator<SkipListNode> iterator() {
+
+		return new Iterator<SkipListNode>() {
+			SkipListNode currentNode;
+
+			public Iterator<SkipListNode> init() {
 				currentNode = sentinel;
-				
+
 				while (currentNode.down != null)
 					currentNode = currentNode.down;
-				
+
 				return this;
 			}
-			
+
 			@Override
-			public SkiplistNode next() {
+			public SkipListNode next() {
 				return currentNode.right;
 			}
-			
+
 			@Override
 			public boolean hasNext() {
 				return currentNode.right != null;
 			}
 		}.init();
 	}
-	
+
 	/**
-	 * helper function, prints current state of skiplist
+	 * helper function, prints current state of skipList
 	 */
 	@Override
 	public String toString() {
 		String[][] rows = new String[levels + 1][length + 2];
-		SkiplistNode k = head;
+		SkipListNode k = head;
 		while (k.down != null)
 			k = k.down;
 
 		int col = 0, curLvl = 0;
-		SkiplistNode temp = k;
+		SkipListNode temp = k;
 
 		while (temp != null) {
 			while (temp != null) {

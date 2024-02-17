@@ -1,10 +1,12 @@
 package com.kochudb.server;
 
+import java.io.Serializable;
+
 /**
  * Key-Value based storage engine
  * 
  * @param <K> comparable key
- * @param <V> value
+ * @param <V> serializable value
  */
 public interface KVStorage<K extends Comparable<K>, V> {
 	
