@@ -5,47 +5,156 @@ import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.lang.invoke.MethodHandles;
 import java.time.Instant;
-import java.util.Arrays;
+import java.util.Map;
+import java.util.TreeMap;
 
+import com.kochudb.k.Record;
+import com.kochudb.types.ByteArray;
 import com.kochudb.types.LSMTree;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class FileIO {
 
+	private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
+
 	/**
-	 * find all files identified by a matching file name pattern from the given dir
-	 * 
-	 * @param dir directory
-	 * @param endsWith ends with
-	 * @return File[]
+	 * Write the map of key to offset information to file. Generated index is not sparse.
+	 *
+	 * @param filename    name of Index file
+	 * @param keyToOffset String key and corresponding offset in the data file
+	 * @throws IOException IOException
 	 */
-	public static File[] getFiles(String dir, String pattern) {
-		File[] files = new File(dir).listFiles(pathname -> {
-			return pathname.getName().matches(pattern);
-		});
-		// newest first
-		Arrays.sort(files, (a, b) -> b.compareTo(a));
-		return files;
+	public static void writeIndexFile(String filename, Map<ByteArray, Long> keyToOffset) {
+		logger.debug("Creating index file: {}", filename);
+
+		try (RandomAccessFile indexFile = new RandomAccessFile(filename, "rw")) {
+
+			for (Map.Entry<ByteArray, Long> entry: keyToOffset.entrySet()) {
+
+				byte[] keyBytes = entry.getKey().getBytes();
+				Long value = entry.getValue();
+
+				byte[] offsetBytes = FileIO.longToBytes(value);
+				byte[] recWithSize = new byte[keyBytes.length + 9];
+
+				recWithSize[0] = (byte) keyBytes.length;
+
+				System.arraycopy(keyBytes, 0, recWithSize, 1, keyBytes.length);
+				System.arraycopy(offsetBytes, 0, recWithSize, 1 + keyBytes.length, Long.BYTES);
+
+				indexFile.seek(indexFile.length());
+				indexFile.write(recWithSize);
+			}
+
+			indexFile.getFD().sync();
+		} catch (FileNotFoundException fnfe) {
+			logger.error("File not found: {}", filename);
+			fnfe.printStackTrace();
+		} catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+	/**
+	 * Reads a .index file to a TreeMap and return it. Index file contains a string
+	 * key and its offset in the corresponding data file.
+	 *
+	 * @param filename path to index file
+	 * @return TreeMap
+	 */
+	public static Map<ByteArray, Long> readIndexFile(String filename) {
+		logger.debug("Reading index file: {}", filename);
+
+		Map<ByteArray, Long> keyToOffset = new TreeMap<>();
+
+		try (RandomAccessFile raf = new RandomAccessFile(filename, "r")) {
+			raf.seek(0);
+			while (raf.getFilePointer() < raf.length()) {
+				// key
+				byte[] key = new byte[raf.read()];
+				raf.read(key, 0, key.length);
+
+				// offset where the key resides
+				byte[] nextEightBytes = new byte[8];
+				raf.read(nextEightBytes, 0, 8);
+				long offset = FileIO.bytesToLong(nextEightBytes);
+
+				keyToOffset.put(new ByteArray(key), offset);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return keyToOffset;
+	}
+
+	/**
+	 * Prepend size of data to the data and append it to the file.
+	 *
+	 * @param dataFile RAF object
+	 * @param data     data as byte array
+	 * @param recordType     represents whether the byte[] passed is key or value
+	 * @return the offset at which the data was written
+	 * @throws IOException IOException
+	 */
+	public static long appendData(RandomAccessFile dataFile, byte[] data, Record recordType) throws IOException {
+		long offset = dataFile.length();
+		int headerLen = recordType.length;
+		byte[] bytes = new byte[headerLen + data.length];
+
+		dataFile.seek(offset);
+
+		byte[] headerArray = FileIO.intToBytes(headerLen, data.length);
+		System.arraycopy(headerArray, 0, bytes, 0, headerLen);
+
+		System.arraycopy(data, 0, bytes, headerLen, data.length);
+		dataFile.write(bytes);
+
+		return offset;
+	}
+
+	/**
+	 * Read current object from the given offset. Object is either key or value.
+	 *
+	 * @param raf    file to read
+	 * @param offset offset at which current data is stored
+	 * @param objectType type of the object to read - key or value
+	 * @return value in byte[]
+	 * @throws IOException IOException
+	 */
+	public static byte[] readObject(RandomAccessFile raf, Long offset, Record objectType) throws IOException {
+
+		raf.seek(offset);
+
+		byte[] header = new byte[objectType.length];
+		raf.read(header, 0, objectType.length);
+		int lenOfData = FileIO.bytesToInt(header);
+
+		byte[] data = new byte[lenOfData];
+		raf.read(data, 0, lenOfData);
+
+		return data;
 	}
 
 	/**
 	 * Find all files from the given level.
 	 * 
-	 * @param dataDir parent directory
+	 * @param dataDirectory parent directory
 	 * @param level level of level com[action
 	 * @return File[] files
 	 */
 	public static File[] findFiles(String dataDirectory, int level) {
 		File dir = new File(dataDirectory);
-		File[] files = dir.listFiles(new FilenameFilter() {
-			
+
+        return dir.listFiles(new FilenameFilter() {
+
 			@Override
-			public boolean accept(File dir, String name) {
+			public boolean accept(File dir1, String name) {
 				return name.matches("^l" + level + "_[0-9]+\\.[0-9]+\\.idx$");
 			}
 		});
-		
-		return files;
 	}
 	
 	public static RandomAccessFile createDatFromIdx(String idxFile) {
@@ -71,11 +180,11 @@ public class FileIO {
 	
 	/**
 	 * Filename generator
-	 * 
+	 *
 	 * @return filename (canonical path) without extension
-	 * @throws IOException 
+	 * @throws IOException
 	 */
-	public static final String generateFilename() {
+	public static String generateFilename() {
 		Instant instant = Instant.now();
 		return (LSMTree.dataDir.getAbsolutePath()) + "/"
 				+ instant.getEpochSecond() + "." + instant.getNano();
@@ -88,7 +197,7 @@ public class FileIO {
 	 * @param b byte[]
 	 * @return int
 	 */
-	public static final int bytesToInt(byte[] b) {
+	public static int bytesToInt(byte[] b) {
 		int result = 0;
 		for (int i = 0; i < b.length; i++) {
 			result <<= 8;
@@ -104,7 +213,7 @@ public class FileIO {
 	 * @param in integer
 	 * @return byte[]
 	 */
-	public static final byte[] intToBytes(int resultLen, int in) {
+	public static byte[] intToBytes(int resultLen, int in) {
 		byte[] bytes = new byte[resultLen];
 		for (int i = 0; i < resultLen; i++) {
 			int cur = resultLen - i - 1;
@@ -116,15 +225,15 @@ public class FileIO {
 	/**
 	 * Convert a Long object to a byte[] of size 8
 	 * 
-	 * @param long
+	 * @param aLong long
 	 * @return bytes
 	 */
-	public static final byte[] longToBytes(Long lo) {
+	public static byte[] longToBytes(Long aLong) {
 		byte[] bytes = new byte[Long.BYTES];
 		int length = bytes.length;
 		for (int i = 0; i < length; i++) {
-		    bytes[length - i - 1] = (byte) (lo & 0xFF);
-		    lo >>= 8;
+		    bytes[length - i - 1] = (byte) (aLong & 0xFF);
+		    aLong >>= 8;
 		}
 		return bytes;
 	}
@@ -134,12 +243,12 @@ public class FileIO {
 	 * 
 	 * @param bytes byte[]
 	 */
-	public static final long bytesToLong(final byte[] bytes) {
-		long value = 0;
+	public static long bytesToLong(final byte[] bytes) {
+		long aLong = 0;
 		for (int i = 0; i < Long.BYTES; i++) {
-		    value = (value << 8) + (bytes[i] & 0xFF);
+		    aLong = (aLong << 8) + (bytes[i] & 0xFF);
 		}
-		return value;
+		return aLong;
 	}
 
 	/**
@@ -156,12 +265,12 @@ public class FileIO {
 	/**
 	 * Decompress byte[]
 	 * 
-	 * @param input byte[] to decompress
+	 * @param bytes byte[] to decompress
 	 * @return byte[]
 	 * @throws IOException
 	 */
-	public static byte[] decompress(byte[] input) throws IOException {
-		return input;
+	public static byte[] decompress(byte[] bytes) throws IOException {
+		return bytes;
 	}
 
 }

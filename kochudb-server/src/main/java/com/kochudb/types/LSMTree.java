@@ -30,12 +30,12 @@ public class LSMTree implements KVStorage<ByteArray, byte[]> {
 	/**
 	 * SkipList for in-memory data
 	 */
-	Skiplist memtable;
+	SkipList memTable;
 
 	/**
-	 * Deque of memtables Deque is for handling failures by flushing thread
+	 * Deque of memTables Deque is for handling failures by flushing thread
 	 */
-	Deque<Skiplist> memtableQueue;
+	Deque<SkipList> memTableQueue;
 
 	/**
 	 * Reference to SSTable instance
@@ -44,17 +44,16 @@ public class LSMTree implements KVStorage<ByteArray, byte[]> {
 
 	/**
 	 * Size in bytes
-	 * 
 	 * Threshold for triggering flushing of currently active skiplist
 	 */
 	Integer maxSkipListSize = K.LEVEL_ZERO_FILE_MAX_SIZE_KB * 1024; // 4 kb
 
-	Integer curSkipListSize = 0;
+	Integer curSkipListSize;
 
 	/**
-	 * single threaded executor for periodic memtable flushing
+	 * single threaded executor for periodic memTable flushing
 	 */
-	ExecutorService memtableExecutor;
+	ExecutorService memTableExecutor;
 
 	/**
 	 * single threaded, scheduled executor for compaction thread
@@ -67,7 +66,7 @@ public class LSMTree implements KVStorage<ByteArray, byte[]> {
 	 * Base class that takes care of all LSM Tree operations, including compaction
 	 * and indexing.
 	 * 
-	 * @throws IOException
+	 * @throws IOException IOException
 	 */
 	public LSMTree(Properties props) throws IOException {
 		dataDir = new File(props.getProperty("data.dir", "data"));
@@ -78,18 +77,17 @@ public class LSMTree implements KVStorage<ByteArray, byte[]> {
 
 		curSkipListSize = 0;
 
-		/**
-		 * search thread and memtable-flush thread can perform one or both of the below
+		/*
+		 * search thread and memTable-flush thread can perform one or both of the below
 		 * operations concurrently: iterate the queue holding skiplists, or iterate the skiplist
 		 */
-		memtableQueue = new ConcurrentLinkedDeque<>();
+		memTableQueue = new ConcurrentLinkedDeque<>();
 		
-		//memtable = new ConcurrentSkipListMap<ByteArray, byte[]>(new ByteArrayComparator());
-		memtable = new Skiplist();
+		memTable = new SkipList();
 		
 		ssTable = new SSTable(dataDir);
 
-		memtableExecutor = Executors.newSingleThreadExecutor((runnable) -> {
+		memTableExecutor = Executors.newSingleThreadExecutor((runnable) -> {
 			return new Thread(runnable, "memtable-flusher");
 		});
 		
@@ -105,19 +103,19 @@ public class LSMTree implements KVStorage<ByteArray, byte[]> {
 	 */
 	@Override
 	public byte[] get(ByteArray key) {
-		if (memtable.containsKey(key))
-			return (byte[]) memtable.get(key).val;
+		if (memTable.containsKey(key))
+			return memTable.get(key).val;
 
-		logger.debug("Key not in memtable");
+		logger.trace("Key {} not in memTable", key);
 
-		Iterator<Skiplist> iter = memtableQueue.descendingIterator();
+		Iterator<SkipList> iter = memTableQueue.descendingIterator();
 
 		while (iter.hasNext()) {
-			Skiplist skiplist = iter.next();
+			SkipList skiplist = iter.next();
 
 			if (skiplist.containsKey(key)) {
-				logger.debug("Key found in older memtable");
-				return (byte[]) skiplist.get(key).val;
+				logger.trace("Key found in older memTable");
+				return skiplist.get(key).val;
 			}
 		}
 
@@ -132,11 +130,11 @@ public class LSMTree implements KVStorage<ByteArray, byte[]> {
 	 */
 	@Override
 	public byte[] set(ByteArray key, byte[] val) {
-		// start memtable flusher thread
+		// start memTable flusher thread
 		if (curSkipListSize >= maxSkipListSize) {
-			memtableQueue.add(memtable);
-			memtable = new Skiplist();
-			memtableExecutor.submit(new MemTableFlusher(memtableQueue));
+			memTableQueue.add(memTable);
+			memTable = new SkipList();
+			memTableExecutor.submit(new MemTableFlusher(memTableQueue));
 			curSkipListSize = 0;
 		}
 
@@ -146,7 +144,7 @@ public class LSMTree implements KVStorage<ByteArray, byte[]> {
 		if (val.length > K.VALUE_MAX_SIZE)
 			return "Error: Value too long. Max allowed size is 4MB".getBytes();
 
-		memtable.put(key, val);
+		memTable.put(key, val);
 		curSkipListSize += key.length() + val.length;
 
 		return "ok".getBytes();
@@ -157,7 +155,7 @@ public class LSMTree implements KVStorage<ByteArray, byte[]> {
 	 */
 	@Override
 	public byte[] del(ByteArray key) {
-		memtable.put(key, new byte[] {});
+		memTable.put(key, new byte[] {});
 		return "ok".getBytes();
 	}
 }

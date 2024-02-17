@@ -63,7 +63,7 @@ public class LevelCompactor implements Runnable {
 	
 	@Override
 	public void run() {
-		if (isRunning.get() == true || !isRunning.compareAndSet(false, true)) {
+		if (isRunning.get() || !isRunning.compareAndSet(false, true)) {
 			logger.debug("Compaction thread is running");
 			return;
 		}
@@ -78,11 +78,8 @@ public class LevelCompactor implements Runnable {
 
 	/**
 	 * Decide whether current level to be compacted. If yes, start compaction.
-	 * 
+	 *
 	 * @param level current level
-	 * @param files files of this level
-	 * @throws ClassNotFoundException
-	 * @throws IOException
 	 */
 	void compactLevel(int level) {
 		File[] files = FileIO.findFiles(dataDirectory, level);
@@ -93,7 +90,7 @@ public class LevelCompactor implements Runnable {
 		int allowedNumFilesInCurLevel = computeNumFilesInLevel(level);
 		long maxFileSizeInLevel = computeMaxFileSizeInLevel(level);
 		long maxTotalSizeInLevel = allowedNumFilesInCurLevel * maxFileSizeInLevel;
-		long curTotalSizeInLevel = Arrays.asList(files).stream().map(f -> f.length()).mapToLong(Long::longValue).sum();
+		long curTotalSizeInLevel = Arrays.stream(files).map(File::length).mapToLong(Long::longValue).sum();
 		
 		if (curTotalSizeInLevel > maxTotalSizeInLevel || files.length > allowedNumFilesInCurLevel) {
 			logger.debug("Compaction started. current level: {}, number of files in level: {}", level, files.length);
@@ -121,7 +118,7 @@ public class LevelCompactor implements Runnable {
 	 * @param files array of index files
 	 * @param start start position
 	 * @param end end position
-	 * @return
+	 * @return absolute name of merged file
 	 */
 	private String compactFiles(int curLevel, File[] files, int start, int end) {
 		
@@ -143,19 +140,19 @@ public class LevelCompactor implements Runnable {
 	 * merge tow SSTable into one
 	 * 
 	 * @param file1 first file
-	 * @param file2 econd file
+	 * @param file2 second file
 	 * @param curLevel current level
 	 * @return absolute name of merged file
 	 */
 	private String mergeTwoFiles(File file1, File file2, int curLevel) {
 
-		Map<ByteArray, Object[]> mergedMap = new TreeMap<ByteArray, Object[]>();
+		Map<ByteArray, Object[]> mergedMap = new TreeMap<>();
 		
 		// order of files is important. file1 was created earlier than file2
 		for (File file: new File[] {file1, file2}) {
 			Map<ByteArray, Long> indexMap;
 			try {
-				indexMap = SSTable.readIndexFile(file.getCanonicalPath());
+				indexMap = FileIO.readIndexFile(file.getCanonicalPath());
 				for (Map.Entry<ByteArray, Long> entry: indexMap.entrySet()) {
 					mergedMap.put(entry.getKey(), new Object[] {entry.getValue(), file});
 				}
@@ -175,8 +172,8 @@ public class LevelCompactor implements Runnable {
 			
 			logger.debug("New Temp file name: {}", newIdxFilename);
 
-			Map<ByteArray, Long> updatedIdxMap = new HashMap<ByteArray, Long>();
-			Map<File, RandomAccessFile> openedFiles = new HashMap<File, RandomAccessFile>();
+			Map<ByteArray, Long> updatedIdxMap = new HashMap<>();
+			Map<File, RandomAccessFile> openedFiles = new HashMap<>();
 			
 			openedFiles.put(file1, FileIO.createDatFromIdx(file1.getAbsolutePath()));
 			openedFiles.put(file2, FileIO.createDatFromIdx(file2.getAbsolutePath()));
@@ -188,11 +185,11 @@ public class LevelCompactor implements Runnable {
 				File file =  (File) entry.getValue()[1];
 				Long offset =  (Long) entry.getValue()[0];
 	
-				byte[] keyBytes = SSTable.readObject(openedFiles.get(file), offset, Record.KEY);
-				byte[] valueBytes = SSTable.readObject(openedFiles.get(file), (offset + keyBytes.length + Record.KEY.length), Record.VALUE);
+				byte[] keyBytes = FileIO.readObject(openedFiles.get(file), offset, Record.KEY);
+				byte[] valueBytes = FileIO.readObject(openedFiles.get(file), (offset + keyBytes.length + Record.KEY.length), Record.VALUE);
 				
-				Long newOffset = SSTable.appendData(newDatRaf, keyBytes, Record.KEY);
-				SSTable.appendData(newDatRaf, valueBytes, Record.VALUE);
+				Long newOffset = FileIO.appendData(newDatRaf, keyBytes, Record.KEY);
+				FileIO.appendData(newDatRaf, valueBytes, Record.VALUE);
 				
 				updatedIdxMap.put(key, newOffset);
 				//f.setLastModified(Instant.now().getEpochSecond() * 1000);
@@ -204,7 +201,7 @@ public class LevelCompactor implements Runnable {
 				file.close();
 			
 			if (!updatedIdxMap.isEmpty())
-				SSTable.writeIndexFile(newIdxFilename, updatedIdxMap);
+				FileIO.writeIndexFile(newIdxFilename, updatedIdxMap);
 			
 			logger.debug("New data file created: {}", newDatFilename);
 			logger.debug("New index file created: {}", newIdxFilename);
@@ -219,26 +216,7 @@ public class LevelCompactor implements Runnable {
 		}
 		return null;
 	}
-	
-	/**
-	 * rename an index file (.idx or .idxtmp) t0 data file
-	 * 
-	 * @param toRename absolute file path
-	 * @return absolute file path
-	 *
-	private String renameIndexFile(String toRename) {
 
-		String newName = toRename.replaceFirst(".idxtmp$", ".idx");
-		
-		if (new File(toRename).renameTo(new File(newName)))
-			logger.debug("Index file renamed");
-		else
-			logger.error("Failed to rename inedx file");
-		
-		return newName;
-	}
-	*/
-	
 	/**
 	 * files that are compacted into bigger files are periodically deleted 
 	 */
@@ -259,12 +237,11 @@ public class LevelCompactor implements Runnable {
 	/**
 	 * Compute the maximum size a file is allowed to have in the given level
 	 * This is computed from the configuration properties.
-	 * 
 	 * Number of files in the given level is equal to the number of files in prev level multiplied by
 	 * the multiplier. At level 0, it's configured as 10.
 	 * 
-	 * @param level
-	 * @return
+	 * @param level current level
+	 * @return max file size in current level
 	 */
 	private long computeMaxFileSizeInLevel(int level) {
 		if (level > 0)
@@ -274,12 +251,11 @@ public class LevelCompactor implements Runnable {
 	
 	/**
 	 * computer number of files in the given level
-	 * 
 	 * This is computed from the number of files in the prev level multiplied by a configured multiplier.
 	 * Multiplier is configured for level 0.
 	 * 
 	 * @param level - level of level compaction
-	 * @return
+	 * @return number of files in level
 	 */
 	private int computeNumFilesInLevel(int level) {
 		if (level > 0)

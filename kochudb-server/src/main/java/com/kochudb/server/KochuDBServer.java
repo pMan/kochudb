@@ -20,6 +20,7 @@ import com.kochudb.types.ByteArray;
 import com.kochudb.types.LSMTree;
 
 public class KochuDBServer extends Thread {
+
 	private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
 
 	private static ServerSocket serverSocket;
@@ -30,35 +31,25 @@ public class KochuDBServer extends Thread {
 
 	private static int port = 2222;
 	
-	public static Properties prop;
+	//public static Properties prop;
 	
-	public KochuDBServer(String[] args) throws IOException {
-		Properties prop = new Properties();
-		try {
-		    prop.load(new FileInputStream("src/main/resources/application.properties"));
-		} catch (IOException e) {
-		    e.printStackTrace();
-		}
-		
-		if (args.length > 1) {
-			System.out.println(K.USAGE_HELP);
-			logger.warn("Invalid arguments");
-			System.exit(K.ERR_INVALID_CLI_ARGS);
-		}
-		if (args.length == 1)
-			prop.setProperty("srver.port", args[0]);
-
+	public KochuDBServer(Properties context) throws IOException {
 		setName("front-end");
 		
-		port = Integer.parseInt(prop.getProperty("server.port"));
+		port = Integer.parseInt(context.getProperty("server.port"));
 		
 		serverSocket = new ServerSocket(port);
-		storageEngine = new LSMTree(prop);
+		storageEngine = new LSMTree(context);
 		alive = true;
 	}
 
+	@Override
 	public void run() {
 		logger.info("Server accepting requests on :{}", port);
+		listen();
+	}
+
+	public void listen() {
 		while (alive) {
 			try {
 				Socket socket = serverSocket.accept();
@@ -78,7 +69,7 @@ public class KochuDBServer extends Thread {
 				resp.setData(new String(response, "utf-8"));
 				oos.writeObject(resp);
 			} catch (SocketException se) {
-				System.out.println((alive == false) ? "Server shut down gracefully" : se.getMessage());
+				System.out.println((!alive) ? "Server shut down gracefully" : se.getMessage());
 			} catch (Exception e) {
 				logger.error(e.getMessage());
 				e.printStackTrace();
