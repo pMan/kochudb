@@ -23,7 +23,9 @@
 hs_err_pid*
 replay_pid*
 
-# eclipse and temp files
+# eclipse/idea and temp files
+kochudb-server/.idea
+cli-client/.idea
 cli-client/.settings
 cli-client/.classpath
 cli-client/.project
@@ -33,6 +35,8 @@ kochudb-server/.classpath
 kochudb-server/.project
 kochudb-server/target
 kochudb-server/data*
+kochudb-server/filename
+kochudb-server/qodana.yaml
 kochudb-server/src/main/java/com/kochudb/server/Test.java
 cli-client/src/main/java/com/kochudb/client/DataIngestor.java
 .settings
