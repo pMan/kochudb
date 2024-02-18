@@ -1,4 +1,5 @@
 [![Maven Build](https://github.com/pMan/kochudb/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/pMan/kochudb/actions/workflows/build.yml)
+
 # kochudb
 KochuDB is LSMTree based level-compacted single-threaded key-value store
 
@@ -19,3 +20,6 @@ Implemented based on Log-Structured Merge (LSM) tree.
 * __Write-Ahead Log__ - to improve durability
 * __Sparse indexes__ - for search optimization
 * __Data Compression__ - for storage efficiency
+
+### Disclaimer
+Not production-ready, not meant to be.
