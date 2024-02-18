@@ -1,3 +1,4 @@
+[![Java CI with Maven](https://github.com/pMan/kochudb/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/pMan/kochudb/actions/workflows/build.yml)
 # kochudb
 KochuDB is LSMTree based level-compacted single-threaded key-value store
 
