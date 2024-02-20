@@ -1,7 +1,21 @@
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Maven Build](https://github.com/pMan/kochudb/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/pMan/kochudb/actions/workflows/build.yml)
 
 # kochudb
 KochuDB is LSMTree based level-compacted single-threaded key-value store
+
+```
+:::::::::::::::::::::::::::::::::::::::::::::::::::
+::                                               ::
+::   Welcome to      _           _____  ____     ::
+::   | |/ /         | |         |  __ \|  _ \    ::
+::   | ' / ___   ___| |__  _   _| |  | | |_) |   ::
+::   |  < / _ \ / __| '_ \| | | | |  | |  _ <    ::
+::   | . \ (_) | (__| | | | |_| | |__| | |_) |   ::
+::   |_|\_\___/ \___|_| |_|\__,_|_____/|____/    ::
+::                               Version 0.0.1   ::
+:::::::::::::::::::::::::::::::::::::::::::::::::::
+```
 
 ## Design
 Implemented based on Log-Structured Merge (LSM) tree.
