@@ -18,65 +18,65 @@ import java.util.TreeMap;
 
 public class MemTableFlusher implements Runnable {
 
-	private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
+    private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
 
-	Deque<SkipList> memTableQueue;
-	
-	// key and the offset where the record is stored in file
-	Map<ByteArray, Long> keyToOffsetMap;
+    Deque<SkipList> memTableQueue;
+    
+    // key and the offset where the record is stored in file
+    Map<ByteArray, Long> keyToOffsetMap;
 
-	public MemTableFlusher(Deque<SkipList> memTableQueue) {
-		this.memTableQueue = memTableQueue;
-	}
+    public MemTableFlusher(Deque<SkipList> memTableQueue) {
+        this.memTableQueue = memTableQueue;
+    }
 
-	@Override
-	public void run() {
-		flush();
-	}
+    @Override
+    public void run() {
+        flush();
+    }
 
-	// flush current state of the queue
-	private void flush() {
-		while (!memTableQueue.isEmpty()) {
-			try {
-				SkipList skipList = memTableQueue.peekFirst();
+    // flush current state of the queue
+    private void flush() {
+        while (!memTableQueue.isEmpty()) {
+            try {
+                SkipList skipList = memTableQueue.peekFirst();
 
-				keyToOffsetMap = new TreeMap<>();
+                keyToOffsetMap = new TreeMap<>();
 
-				String[] filenames = FileIO.createNewIdxAndDataFilenames(0);
-				String indexFilePath = filenames[0];
-				String datafilePath = filenames[1];
+                String[] filenames = FileIO.createNewIdxAndDataFilenames(0);
+                String indexFilePath = filenames[0];
+                String datafilePath = filenames[1];
 
-				logger.info("Flushing to file: {}", datafilePath);
+                logger.info("Flushing to file: {}", datafilePath);
 
-				try (RandomAccessFile dataFile = new RandomAccessFile(datafilePath, "rw")) {
-					Iterator<SkipListNode> iterator = skipList.iterator();
+                try (RandomAccessFile dataFile = new RandomAccessFile(datafilePath, "rw")) {
+                    Iterator<SkipListNode> iterator = skipList.iterator();
 
-					while (iterator.hasNext()) {
-						SkipListNode node = iterator.next();
-						ByteArray key = node.getKey();
+                    while (iterator.hasNext()) {
+                        SkipListNode node = iterator.next();
+                        ByteArray key = node.getKey();
 
-						byte[] keyBytes = FileIO.compress(key.getBytes());
-						long keyOffset = FileIO.appendData(dataFile, keyBytes, Record.KEY);
+                        byte[] keyBytes = FileIO.compress(key.getBytes());
+                        long keyOffset = FileIO.appendData(dataFile, keyBytes, Record.KEY);
 
-						byte[] valBytes = FileIO.compress(node.getValue());
-						FileIO.appendData(dataFile, valBytes, Record.VALUE);
-						keyToOffsetMap.put(key, keyOffset);
-					}
+                        byte[] valBytes = FileIO.compress(node.getValue());
+                        FileIO.appendData(dataFile, valBytes, Record.VALUE);
+                        keyToOffsetMap.put(key, keyOffset);
+                    }
 
-					logger.debug("Flush complete");
-				} catch (Exception e) {
-					logger.error("Flush failed. {}", e.getMessage());
-					e.printStackTrace();
-				}
+                    logger.debug("Flush complete");
+                } catch (Exception e) {
+                    logger.error("Flush failed. {}", e.getMessage());
+                    e.printStackTrace();
+                }
 
-				FileIO.writeIndexFile(indexFilePath, keyToOffsetMap);
-				logger.debug("Index file created: {}", indexFilePath);
-				memTableQueue.remove(skipList);
+                FileIO.writeIndexFile(indexFilePath, keyToOffsetMap);
+                logger.debug("Index file created: {}", indexFilePath);
+                memTableQueue.remove(skipList);
 
-			} catch (Exception e) {
-				logger.error("Writing file to disk failed");
-				e.printStackTrace();
-			}
-		}
-	}
+            } catch (Exception e) {
+                logger.error("Writing file to disk failed");
+                e.printStackTrace();
+            }
+        }
+    }
 }

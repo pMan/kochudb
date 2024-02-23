@@ -16,37 +16,37 @@ import com.kochudb.types.LSMTree;
 
 class LSMTreeTest {
 
-	static LSMTree lsmt;
-	static Properties props = new Properties();
-	
-	@BeforeAll
-	static void testLSMTree() {
-		try {
-			props.put("data.dir", "data-test");
-			LSMTreeTest.lsmt = new LSMTree(props);
-			
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
+    static LSMTree lsmt;
+    static Properties props = new Properties();
+    
+    @BeforeAll
+    static void testLSMTree() {
+        try {
+            props.put("data.dir", "data-test");
+            LSMTreeTest.lsmt = new LSMTree(props);
+            
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
-	@AfterAll
-	static void tearDownLSMTree() {
-		new File((String) props.get("data.dir")).delete();
-	}
+    @AfterAll
+    static void tearDownLSMTree() {
+        new File((String) props.get("data.dir")).delete();
+    }
 
-	@Test
-	void testSetAndGet() throws UnsupportedEncodingException {
-		ByteArray key = new ByteArray("Key".getBytes());
-		byte[] val = "Val".getBytes();
-		byte[] result = LSMTreeTest.lsmt.set(key, val);
-		
-		assertEquals("ok", new String(result, "utf-8"));
-		assertEquals("Val", new String(LSMTreeTest.lsmt.get(key), "utf-8"));
-	}
-	
-	@Test
-	void testGetNonExistingKey() throws UnsupportedEncodingException {
-		//assertEquals("", new String(LSMTreeTest.lsmt.get(new ByteArray("non-existing-key")), "utf-8"));
-	}
+    @Test
+    void testSetAndGet() throws UnsupportedEncodingException {
+        ByteArray key = new ByteArray("Key".getBytes());
+        byte[] val = "Val".getBytes();
+        byte[] result = LSMTreeTest.lsmt.set(key, val);
+        
+        assertEquals("ok", new String(result, "utf-8"));
+        assertEquals("Val", new String(LSMTreeTest.lsmt.get(key), "utf-8"));
+    }
+    
+    @Test
+    void testGetNonExistingKey() throws UnsupportedEncodingException {
+        //assertEquals("", new String(LSMTreeTest.lsmt.get(new ByteArray("non-existing-key")), "utf-8"));
+    }
 }
