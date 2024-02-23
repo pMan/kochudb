@@ -15,43 +15,43 @@ import com.kochudb.k.K;
  */
 public class Main {
 
-	private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
+    private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
 
-	static Properties prop;
+    static Properties prop;
 
-	public static void main(String[] args) throws NumberFormatException, IOException {
-		if (args.length > 1) {
-			System.out.println(K.USAGE_HELP);
-			logger.warn("Invalid arguments");
-			System.exit(K.ERR_INVALID_CLI_ARGS);
-		}
+    public static void main(String[] args) throws NumberFormatException, IOException {
+        if (args.length > 1) {
+            System.out.println(K.USAGE_HELP);
+            logger.warn("Invalid arguments");
+            System.exit(K.ERR_INVALID_CLI_ARGS);
+        }
 
-		prop = new Properties();
-		String proFile = args.length == 1 ? args[0] : "src/main/resources/application.properties";
+        prop = new Properties();
+        String proFile = args.length == 1 ? args[0] : "src/main/resources/application.properties";
 
-		System.out.println(K.WELCOME_BANNER);
+        System.out.println(K.WELCOME_BANNER);
 
-		try {
-			prop.load(new FileInputStream(proFile));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+        try {
+            prop.load(new FileInputStream(proFile));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-		KochuDBServer kochuDBServer = new KochuDBServer(prop);
+        KochuDBServer kochuDBServer = new KochuDBServer(prop);
 
-		logger.info("Register shutdown hook");
-		
-		Runtime.getRuntime().addShutdownHook(new Thread() {
-			public void run() {
-				kochuDBServer.terminate();
-				try {
-					kochuDBServer.join();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-		});
-		
-		kochuDBServer.start();
-	}
+        logger.info("Register shutdown hook");
+        
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            public void run() {
+                kochuDBServer.terminate();
+                try {
+                    kochuDBServer.join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        
+        kochuDBServer.start();
+    }
 }

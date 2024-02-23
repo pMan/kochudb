@@ -14,27 +14,27 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 @TestInstance(Lifecycle.PER_CLASS)
 class SkipListNodeTest {
 
-	SkipListNode node;
-	
-	@BeforeAll
-	public void setUpBeforeAll() {
-		node = new SkipListNode(new ByteArray("Key".getBytes()), "Value".getBytes());
-		node.right = new SkipListNode(null, null);
-	}
+    SkipListNode node;
+    
+    @BeforeAll
+    public void setUpBeforeAll() {
+        node = new SkipListNode(new ByteArray("Key".getBytes()), "Value".getBytes());
+        node.right = new SkipListNode(null, null);
+    }
 
-	@BeforeEach
-	void setUp() throws Exception {}
+    @BeforeEach
+    void setUp() throws Exception {}
 
-	@Test
-	void test() {
-		
-		assertTrue(new ByteArray("Key".getBytes()).compareTo(node.getKey()) == 0);
-		
-		assertArrayEquals("Value".getBytes(), node.getValue());
-		
-		assertNull(node.down);
-		
-		assertNotNull(node.right);
-	}
+    @Test
+    void test() {
+        
+        assertTrue(new ByteArray("Key".getBytes()).compareTo(node.getKey()) == 0);
+        
+        assertArrayEquals("Value".getBytes(), node.getValue());
+        
+        assertNull(node.down);
+        
+        assertNotNull(node.right);
+    }
 
 }

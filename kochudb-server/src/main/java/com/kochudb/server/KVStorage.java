@@ -9,10 +9,10 @@ import java.io.Serializable;
  * @param <V> serializable value
  */
 public interface KVStorage<K extends Comparable<K>, V> {
-	
-	public V get(K key);
+    
+    public V get(K key);
 
-	public V set(K key, V val);
+    public V set(K key, V val);
 
-	public V del(K key);
+    public V del(K key);
 }
