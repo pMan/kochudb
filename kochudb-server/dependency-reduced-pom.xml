@@ -9,8 +9,15 @@
   <groupId>com.kochudb.server</groupId>
   <artifactId>kochudb-server</artifactId>
   <name>KochuDB Server</name>
+  <version>${version}</version>
   <description>LSM Tree based key-value data store</description>
   <build>
+    <resources>
+      <resource>
+        <filtering>true</filtering>
+        <directory>src/main/resources</directory>
+      </resource>
+    </resources>
     <plugins>
       <plugin>
         <artifactId>maven-jar-plugin</artifactId>
@@ -101,5 +108,6 @@
   <properties>
     <maven.compiler.target>17</maven.compiler.target>
     <maven.compiler.source>17</maven.compiler.source>
+    <version>0.0.1</version>
   </properties>
 </project>
