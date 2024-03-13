@@ -27,20 +27,26 @@ public class Main {
         }
 
         prop = new Properties();
-        String proFile = args.length == 1 ? args[0] : "src/main/resources/application.properties";
-
-        System.out.println(K.WELCOME_BANNER);
 
         try {
-            prop.load(new FileInputStream(proFile));
+            prop.load(Main.class.getClassLoader().getResourceAsStream("application.properties"));
+
+            // additional config file
+            if (args.length == 1) {
+                Properties add = new Properties();
+                add.load(new FileInputStream(args[0]));
+                prop.putAll(add);
+            }
         } catch (IOException e) {
             e.printStackTrace();
+            System.exit(6);
         }
 
         KochuDBServer kochuDBServer = new KochuDBServer(prop);
 
         logger.info("Register shutdown hook");
-        
+
+        System.exit(9);
         Runtime.getRuntime().addShutdownHook(new Thread() {
             public void run() {
                 kochuDBServer.terminate();
@@ -51,7 +57,9 @@ public class Main {
                 }
             }
         });
-        
+
+        System.out.printf((K.WELCOME_BANNER) + "%n", prop.getProperty("version", "0.0.0"));
+
         kochuDBServer.start();
     }
 }
