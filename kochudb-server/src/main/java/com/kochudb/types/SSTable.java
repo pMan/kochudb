@@ -53,7 +53,7 @@ public class SSTable {
      * @param key search key
      * @return value for the key
      */
-    public byte[] search(ByteArray key) {
+    public ByteArrayValue search(ByteArrayKey key) {
         int level = 0;
         
         // sorted newest first
@@ -68,7 +68,7 @@ public class SSTable {
                     continue;
                 
                 try {
-                    Map<ByteArray, Long> curIndex = FileIO.readIndexFile(indexFile.getAbsolutePath());
+                    Map<ByteArrayKey, Long> curIndex = FileIO.readIndexFile(indexFile.getAbsolutePath());
 
                     if (curIndex.containsKey(key)) {
                         Long offset = curIndex.get(key);
@@ -79,7 +79,7 @@ public class SSTable {
                         byte[] keyData = FileIO.readObject(raf, offset, Record.KEY);
                         byte[] value = FileIO.readObject(raf, offset + keyData.length + Record.KEY.length, Record.VALUE);
                         
-                        return FileIO.decompress(value);
+                        return new ByteArrayValue(FileIO.decompress(value));
                     }
                 } catch (IOException e) {
                     logger.warn("Error reading data: {}", e.getMessage());
@@ -91,6 +91,6 @@ public class SSTable {
             Arrays.sort(indexFiles, Comparator.comparingLong(File::lastModified));
         }
         logger.debug("Key not found");
-        return new byte[] {};
+        return new ByteArrayValue();
     }
 }

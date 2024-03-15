@@ -50,13 +50,8 @@ public class Client {
 				}
 
 				String[] iData = input.split(" ");
-				Request req = switch (iData[0]) {
-				case "get" -> new Request(iData[0], iData[1], null);
-				case "set" -> new Request(iData[0], iData[1], iData[2]);
-				case "del" -> new Request(iData[0], iData[1], null);
-				default -> throw new IllegalArgumentException("Unexpected value: " + iData[0]);
-				};
-
+				Request req = createReq(input);
+				
 				socket = new Socket("localhost", 2222);
 
 				ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
@@ -83,4 +78,33 @@ public class Client {
 		System.out.println("Client closed");
 
 	}
+	
+	static Request createReq(String input) {
+		if (input.length() < 3 || input.charAt(3) != ' ')
+			throw new IllegalArgumentException("Invalid input");
+
+		String op = input.substring(0, 3), key = null, val = null;
+		
+		int i;
+		for (i = 4; i < input.length(); i++) {
+			char c = input.charAt(i);
+			if (c == ' ' && key == null) {
+				key = input.substring(4, i);
+				val = input.substring(i).trim();
+				break;
+			}
+		}
+		
+		if (key == null)
+			key = input.substring(3).trim();
+		
+		Request req = switch (op) {
+		case "get", "del" -> new Request(op, key, null);
+		case "set" -> new Request(op, key, val);
+		default -> throw new IllegalArgumentException("Unexpected operation: " + op);
+		};
+
+		return req;
+	}
+	
 }

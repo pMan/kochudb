@@ -1,7 +1,7 @@
 package com.kochudb.io;
 
 import com.kochudb.k.Record;
-import com.kochudb.types.ByteArray;
+import com.kochudb.types.ByteArrayKey;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 
@@ -18,7 +18,7 @@ class FileIOTest {
     @Test
     void testWriteIndexFile() throws Exception {
         // Setup
-        final Map<ByteArray, Long> keyToOffset = Map.ofEntries(Map.entry(new ByteArray("t"), 0L));
+        final Map<ByteArrayKey, Long> keyToOffset = Map.ofEntries(Map.entry(new ByteArrayKey("t"), 0L));
 
         // Run the test
         FileIO.writeIndexFile("filename", keyToOffset);
@@ -30,10 +30,10 @@ class FileIOTest {
     void testReadIndexFile() {
         // Setup
         // Run the test
-        final Map<ByteArray, Long> result = FileIO.readIndexFile("filename");
+        final Map<ByteArrayKey, Long> result = FileIO.readIndexFile("filename");
 
-        assertTrue(result.containsKey(new ByteArray("t")));
-        assertEquals(0L, result.get(new ByteArray("t")));
+        assertTrue(result.containsKey(new ByteArrayKey("t")));
+        assertEquals(0L, result.get(new ByteArrayKey("t")));
     }
 
     @Test

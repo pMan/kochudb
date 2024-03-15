@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import com.kochudb.k.Record;
-import com.kochudb.types.ByteArray;
+import com.kochudb.types.ByteArrayKey;
 import com.kochudb.types.LSMTree;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,12 +27,12 @@ public class FileIO {
      * @param keyToOffset String key and corresponding offset in the data file
      * @throws IOException IOException
      */
-    public static void writeIndexFile(String filename, Map<ByteArray, Long> keyToOffset) {
+    public static void writeIndexFile(String filename, Map<ByteArrayKey, Long> keyToOffset) {
         logger.debug("Creating index file: {}", filename);
 
         try (RandomAccessFile indexFile = new RandomAccessFile(filename, "rw")) {
 
-            for (Map.Entry<ByteArray, Long> entry: keyToOffset.entrySet()) {
+            for (Map.Entry<ByteArrayKey, Long> entry: keyToOffset.entrySet()) {
 
                 byte[] keyBytes = entry.getKey().getBytes();
                 Long value = entry.getValue();
@@ -65,10 +65,10 @@ public class FileIO {
      * @param filename path to index file
      * @return TreeMap
      */
-    public static Map<ByteArray, Long> readIndexFile(String filename) {
+    public static Map<ByteArrayKey, Long> readIndexFile(String filename) {
         logger.debug("Reading index file: {}", filename);
 
-        Map<ByteArray, Long> keyToOffset = new TreeMap<>();
+        Map<ByteArrayKey, Long> keyToOffset = new TreeMap<>();
 
         try (RandomAccessFile raf = new RandomAccessFile(filename, "r")) {
             raf.seek(0);
@@ -82,7 +82,7 @@ public class FileIO {
                 raf.read(nextEightBytes, 0, 8);
                 long offset = FileIO.bytesToLong(nextEightBytes);
 
-                keyToOffset.put(new ByteArray(key), offset);
+                keyToOffset.put(new ByteArrayKey(key), offset);
             }
         } catch (IOException e) {
             e.printStackTrace();
