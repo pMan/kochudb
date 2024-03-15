@@ -224,12 +224,13 @@ public class SkipList {
 
             @Override
             public SkipListNode next() {
-                return currentNode.right;
+            	currentNode = currentNode.right;
+                return currentNode;
             }
 
             @Override
             public boolean hasNext() {
-                return currentNode.right != null;
+                return currentNode.right.key != null;
             }
         }.init();
     }

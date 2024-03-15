@@ -37,4 +37,8 @@ public class SkipListNode {
     public ByteArrayValue getValue() {
         return val;
     }
+    
+    public String toString() {
+    	return new String(key.getBytes());
+    }
 }

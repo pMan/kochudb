@@ -38,5 +38,10 @@ public class ByteArrayValue implements Serde<ByteArrayValue> {
     public ByteArrayValue deserialize(byte[] bytes) {
     	return new ByteArrayValue(bytes);
     }
+    
+    @Override
+    public String toString() {
+    	return new String(byteArray);
+    }
 
 }

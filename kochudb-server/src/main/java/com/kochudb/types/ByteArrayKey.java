@@ -50,5 +50,10 @@ public class ByteArrayKey implements Comparable<ByteArrayKey>, Serde<ByteArrayKe
     public ByteArrayKey deserialize(byte[] bytes) {
     	return new ByteArrayKey(bytes);
     }
+    
+    @Override
+    public String toString() {
+    	return new String(byteArray);
+    }
 
 }
