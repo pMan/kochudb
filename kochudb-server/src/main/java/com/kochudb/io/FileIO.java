@@ -10,11 +10,12 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.kochudb.k.Record;
 import com.kochudb.types.ByteArrayKey;
 import com.kochudb.types.LSMTree;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public class FileIO {
 
@@ -178,6 +179,24 @@ public class FileIO {
         return new String[] {newIdxFilename, newDatFilename};
     }
     
+    /**
+	 * rename an index file (.idx or .idxtmp) t0 data file
+	 * 
+	 * @param toRename absolute file path
+	 * @return absolute file path
+	 */
+	public static String renameIndexFile(String toRename) {
+
+		String newName = toRename.replaceFirst(".idxtmp$", ".idx");
+		
+		if (new File(toRename).renameTo(new File(newName)))
+			logger.debug("Index file renamed to " + newName);
+		else
+			logger.error("Failed to rename inedx file");
+		
+		return newName;
+	}
+	
     /**
      * Filename generator
      *

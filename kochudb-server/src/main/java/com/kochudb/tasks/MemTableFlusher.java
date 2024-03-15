@@ -1,20 +1,20 @@
 package com.kochudb.tasks;
 
-import com.kochudb.io.FileIO;
-import com.kochudb.k.Record;
-import com.kochudb.types.ByteArrayKey;
-import com.kochudb.types.SkipList;
-import com.kochudb.types.SkipListNode;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.lang.invoke.MethodHandles;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.kochudb.io.FileIO;
+import com.kochudb.k.Record;
+import com.kochudb.types.ByteArrayKey;
+import com.kochudb.types.SkipList;
+import com.kochudb.types.SkipListNode;
 
 public class MemTableFlusher implements Runnable {
 

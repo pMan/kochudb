@@ -100,6 +100,8 @@ public class LevelCompactor implements Runnable {
             String bigTmpIdxFile = compactFiles(level, files, 0, files.length - 1);
             
             logger.trace("New compacted file created in level {}: {}", level, bigTmpIdxFile);
+
+            FileIO.renameIndexFile(bigTmpIdxFile);
             
             // all files from cur level are moved to next level, safe to delete cur level files
             // delete all files marked for deletion
