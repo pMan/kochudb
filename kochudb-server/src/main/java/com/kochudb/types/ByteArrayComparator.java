@@ -5,17 +5,17 @@ import java.util.Comparator;
 /**
  * A comparator for ByteArray
  */
-public class ByteArrayComparator implements Comparator<ByteArray> {
+public class ByteArrayComparator implements Comparator<ByteArrayKey> {
     
     /**
-     * Compare two {@linkplain ByteArray ByteArray} instances lexicographically
+     * Compare two {@linkplain ByteArrayKey ByteArray} instances lexicographically
      */
     public ByteArrayComparator() {
         super();
     }
 
     @Override
-    public int compare(ByteArray left, ByteArray right) {
+    public int compare(ByteArrayKey left, ByteArrayKey right) {
         return left.compareTo(right);
     }
 }

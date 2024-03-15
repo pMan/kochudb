@@ -18,8 +18,8 @@ class ByteArrayComparatorTest {
     @Test
     void testCompare() {
         // Setup
-        final ByteArray left = new ByteArray("t");
-        final ByteArray right = new ByteArray("t");
+        final ByteArrayKey left = new ByteArrayKey("t");
+        final ByteArrayKey right = new ByteArrayKey("t");
 
         // Run the test
         final int result = byteArrayComparatorUnderTest.compare(left, right);
@@ -31,8 +31,8 @@ class ByteArrayComparatorTest {
     @Test
     void testCompare_ThrowsNullPointerException() {
         // Setup
-        final ByteArray left = null;
-        final ByteArray right = null;
+        final ByteArrayKey left = null;
+        final ByteArrayKey right = null;
 
         // Run the test
         assertThrows(NullPointerException.class, () -> byteArrayComparatorUnderTest.compare(left, right));

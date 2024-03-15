@@ -20,13 +20,13 @@ class SSTableTest {
     @Test
     void testSearch() {
         // Setup
-        final ByteArray key = new ByteArray("t");
+        final ByteArrayKey key = new ByteArrayKey("t");
 
         // Run the test
-        final byte[] result = ssTableUnderTest.search(key);
+        final ByteArrayValue result = ssTableUnderTest.search(key);
 
         //assertNull(ssTableUnderTest.search(key));
         // Verify the results
-        assertArrayEquals(new byte[]{}, result);
+        assertArrayEquals(new byte[]{}, result.serialize());
     }
 }

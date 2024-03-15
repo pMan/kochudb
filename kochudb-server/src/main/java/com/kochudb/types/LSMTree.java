@@ -23,7 +23,7 @@ import com.kochudb.tasks.MemTableFlusher;
 /**
  * LSM Tree implementing basic operation on data store
  */
-public class LSMTree implements KVStorage<ByteArray, byte[]> {
+public class LSMTree implements KVStorage<ByteArrayKey, ByteArrayValue> {
 
     private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
 
@@ -102,7 +102,7 @@ public class LSMTree implements KVStorage<ByteArray, byte[]> {
      * Search in-memory first, then disk
      */
     @Override
-    public byte[] get(ByteArray key) {
+    public ByteArrayValue get(ByteArrayKey key) {
         if (memTable.containsKey(key))
             return memTable.get(key).val;
 
@@ -129,7 +129,7 @@ public class LSMTree implements KVStorage<ByteArray, byte[]> {
      * is restricted to 4MB
      */
     @Override
-    public byte[] set(ByteArray key, byte[] val) {
+    public byte[] set(ByteArrayKey key, ByteArrayValue val) {
         // start memTable flusher thread
         if (curSkipListSize >= maxSkipListSize) {
             memTableQueue.add(memTable);
@@ -141,11 +141,11 @@ public class LSMTree implements KVStorage<ByteArray, byte[]> {
         if (key.length() > 255)
             return "Error: Key too long. Max allowed size is 256".getBytes();
 
-        if (val.length > K.VALUE_MAX_SIZE)
+        if (val.length() > K.VALUE_MAX_SIZE)
             return "Error: Value too long. Max allowed size is 4MB".getBytes();
 
         memTable.put(key, val);
-        curSkipListSize += key.length() + val.length;
+        curSkipListSize += key.length() + val.length();
 
         return "ok".getBytes();
     }
@@ -154,8 +154,8 @@ public class LSMTree implements KVStorage<ByteArray, byte[]> {
      * Delete key from data store
      */
     @Override
-    public byte[] del(ByteArray key) {
-        memTable.put(key, new byte[] {});
+    public byte[] del(ByteArrayKey key) {
+        memTable.put(key, new ByteArrayValue());
         return "ok".getBytes();
     }
 }

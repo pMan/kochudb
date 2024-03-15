@@ -1,6 +1,7 @@
 package com.kochudb.server;
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.util.Properties;
@@ -19,7 +20,7 @@ public class Main {
 
     static Properties prop;
 
-    public static void main(String[] args) throws NumberFormatException, IOException {
+    public static void main(String[] args) throws IOException, FileNotFoundException {
         if (args.length > 1) {
             System.out.println(K.USAGE_HELP);
             logger.warn("Invalid arguments");
@@ -38,22 +39,22 @@ public class Main {
                 prop.putAll(add);
             }
         } catch (IOException e) {
-            e.printStackTrace();
-            System.exit(6);
+            //e.printStackTrace();
+            throw e;
         }
 
         KochuDBServer kochuDBServer = new KochuDBServer(prop);
 
         logger.info("Register shutdown hook");
 
-        System.exit(9);
         Runtime.getRuntime().addShutdownHook(new Thread() {
             public void run() {
-                kochuDBServer.terminate();
                 try {
+                	kochuDBServer.terminate();
                     kochuDBServer.join();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+                } catch (InterruptedException | IOException e) {
+					e.printStackTrace();
+					System.out.println(e.getMessage());
                 }
             }
         });
