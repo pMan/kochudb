@@ -1,20 +1,17 @@
 package com.kochudb.types;
 
-import com.kochudb.io.FileIO;
-import com.kochudb.k.K;
-import com.kochudb.k.Record;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.lang.invoke.MethodHandles;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.kochudb.io.FileIO;
+import com.kochudb.k.K;
 
 /**
  * MemTable and SSTable operations
@@ -35,12 +32,10 @@ public class SSTable {
      * @param dataDirectory data directory
      */
     public SSTable(File dataDirectory) {
-        
         try {
             basePath = dataDirectory.getCanonicalPath();
         } catch (IOException e) {
-            logger.error("Write to directory failed: {}", dataDirectory);
-            e.printStackTrace();
+            logger.error("Failed to read data dir: {}", dataDirectory);
             System.exit(K.ERR_NO_DATA_DIR);
         }
         
@@ -58,7 +53,6 @@ public class SSTable {
         
         // sorted newest first
         File[] indexFiles = FileIO.findFiles(basePath, level);
-        Arrays.sort(indexFiles, Comparator.comparingLong(File::lastModified));
         
         while (indexFiles.length > 0 || level <= K.NUM_LEVELS) {
             logger.debug("Searching key in level {}", level);
@@ -68,27 +62,21 @@ public class SSTable {
                     continue;
                 
                 try {
-                    Map<ByteArrayKey, Long> curIndex = FileIO.readIndexFile(indexFile.getAbsolutePath());
+                	String absFilePath = indexFile.getAbsolutePath();
+                    Map<ByteArrayKey, Long> curIndex = FileIO.readIndexFile(absFilePath);
 
                     if (curIndex.containsKey(key)) {
-                        Long offset = curIndex.get(key);
-                        
-                        String dataFilename = indexFile.getAbsolutePath().replace(".idx", ".dat");
-                        RandomAccessFile raf = new RandomAccessFile(dataFilename, "r");
-                        
-                        byte[] keyData = FileIO.readObject(raf, offset, Record.KEY);
-                        byte[] value = FileIO.readObject(raf, offset + keyData.length + Record.KEY.length, Record.VALUE);
-                        
-                        return new ByteArrayValue(FileIO.decompress(value));
+                        KVPair record = FileIO.readKVPair(absFilePath.replace(".idx", ".dat"), curIndex.get(key));
+                        return record.val();
                     }
                 } catch (IOException e) {
                     logger.warn("Error reading data: {}", e.getMessage());
                     e.printStackTrace();
+                    return new ByteArrayValue();
                 }
             }
             level++;
             indexFiles = FileIO.findFiles(basePath, level);
-            Arrays.sort(indexFiles, Comparator.comparingLong(File::lastModified));
         }
         logger.debug("Key not found");
         return new ByteArrayValue();

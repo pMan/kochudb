@@ -11,8 +11,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.kochudb.io.FileIO;
-import com.kochudb.k.Record;
 import com.kochudb.types.ByteArrayKey;
+import com.kochudb.types.KVPair;
 import com.kochudb.types.SkipList;
 import com.kochudb.types.SkipListNode;
 
@@ -35,48 +35,43 @@ public class MemTableFlusher implements Runnable {
     }
 
     // flush current state of the queue
-    private void flush() {
-        while (!memTableQueue.isEmpty()) {
-            try {
-                SkipList skipList = memTableQueue.peekFirst();
+	private void flush() {
+		while (!memTableQueue.isEmpty()) {
+			SkipList skipList = memTableQueue.peekFirst();
 
-                keyToOffsetMap = new TreeMap<>();
+			keyToOffsetMap = new TreeMap<>();
 
-                String[] filenames = FileIO.createNewIdxAndDataFilenames(0);
-                String indexFilePath = filenames[0];
-                String datafilePath = filenames[1];
+			String[] filenames = FileIO.createNewIdxAndDataFilenames(0);
+			String indexFilePath = filenames[0];
+			String datafilePath = filenames[1];
 
-                logger.info("Flushing to file: {}", datafilePath);
+			try (RandomAccessFile dataFile = new RandomAccessFile(datafilePath, "rw")) {
+				Iterator<SkipListNode> iterator = skipList.iterator();
 
-                try (RandomAccessFile dataFile = new RandomAccessFile(datafilePath, "rw")) {
-                    Iterator<SkipListNode> iterator = skipList.iterator();
+				while (iterator.hasNext()) {
+					SkipListNode node = iterator.next();
 
-                    while (iterator.hasNext()) {
-                        SkipListNode node = iterator.next();
-                        ByteArrayKey key = node.getKey();
+					//byte[] keyBytes = FileIO.compress(node.getKey().serialize());
+					//byte[] valBytes = FileIO.compress(node.getValue().serialize());
 
-                        byte[] keyBytes = FileIO.compress(key.getBytes());
-                        long keyOffset = FileIO.appendData(dataFile, keyBytes, Record.KEY);
+					KVPair kvPair = new KVPair(node.getKey().serialize(), node.getValue().serialize());
+					long offset = FileIO.appendData(dataFile, kvPair.serialize());
 
-                        byte[] valBytes = FileIO.compress(node.getValue().serialize());
-                        FileIO.appendData(dataFile, valBytes, Record.VALUE);
-                        keyToOffsetMap.put(key, keyOffset);
-                    }
+					keyToOffsetMap.put(node.getKey(), offset);
+				}
 
-                    logger.debug("Flush complete");
-                } catch (Exception e) {
-                    logger.error("Flush failed. {}", e.getMessage());
-                    e.printStackTrace();
-                }
+				FileIO.writeIndexFile(indexFilePath, keyToOffsetMap);
+				logger.debug("Data file created: {}", datafilePath);
+				logger.debug("Index file created: {}", indexFilePath);
+				
+				memTableQueue.remove(skipList);
 
-                FileIO.writeIndexFile(indexFilePath, keyToOffsetMap);
-                logger.debug("Index file created: {}", indexFilePath);
-                memTableQueue.remove(skipList);
+				logger.debug("Flush complete");
+			} catch (Exception e) {
+				logger.error("Flush failed. {}", e.getMessage());
+				e.printStackTrace();
+			}
 
-            } catch (Exception e) {
-                logger.error("Writing file to disk failed");
-                e.printStackTrace();
-            }
-        }
-    }
+		}
+	}
 }
