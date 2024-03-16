@@ -6,7 +6,6 @@ import java.util.Random;
 /**
  * SkipList is a probabilistic list that offers average O(log n) runtime
  * for insert, search, delete and update operations.
- * Coin toss probability is always 0.5 in this implementation
  */
 public class SkipList {
 

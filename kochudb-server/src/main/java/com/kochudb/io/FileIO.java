@@ -1,5 +1,8 @@
 package com.kochudb.io;
 
+import static com.kochudb.k.Record.KEY;
+import static com.kochudb.k.Record.VALUE;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
@@ -7,14 +10,16 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.lang.invoke.MethodHandles;
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.kochudb.k.Record;
 import com.kochudb.types.ByteArrayKey;
+import com.kochudb.types.KVPair;
 import com.kochudb.types.LSMTree;
 
 public class FileIO {
@@ -35,16 +40,16 @@ public class FileIO {
 
             for (Map.Entry<ByteArrayKey, Long> entry: keyToOffset.entrySet()) {
 
-                byte[] keyBytes = entry.getKey().getBytes();
+                byte[] keyBytes = entry.getKey().serialize();
                 Long value = entry.getValue();
 
                 byte[] offsetBytes = FileIO.longToBytes(value);
-                byte[] recWithSize = new byte[keyBytes.length + 9];
+                byte[] recWithSize = new byte[keyBytes.length + KEY.length + Long.BYTES];
 
                 recWithSize[0] = (byte) keyBytes.length;
 
-                System.arraycopy(keyBytes, 0, recWithSize, 1, keyBytes.length);
-                System.arraycopy(offsetBytes, 0, recWithSize, 1 + keyBytes.length, Long.BYTES);
+                System.arraycopy(keyBytes, 0, recWithSize, KEY.length, keyBytes.length);
+                System.arraycopy(offsetBytes, 0, recWithSize, KEY.length + keyBytes.length, Long.BYTES);
 
                 indexFile.seek(indexFile.length());
                 indexFile.write(recWithSize);
@@ -78,9 +83,9 @@ public class FileIO {
                 byte[] key = new byte[raf.read()];
                 raf.read(key, 0, key.length);
 
-                // offset where the key resides
-                byte[] nextEightBytes = new byte[8];
-                raf.read(nextEightBytes, 0, 8);
+                // offset where the value resides
+                byte[] nextEightBytes = new byte[Long.BYTES];
+                raf.read(nextEightBytes, 0, Long.BYTES);
                 long offset = FileIO.bytesToLong(nextEightBytes);
 
                 keyToOffset.put(new ByteArrayKey(key), offset);
@@ -90,74 +95,55 @@ public class FileIO {
         }
         return keyToOffset;
     }
-
+    
     /**
-     * Prepend size of data to the data and append it to the file.
-     *
-     * @param dataFile RAF object
-     * @param data     data as byte array
-     * @param recordType     represents whether the byte[] passed is key or value
-     * @return the offset at which the data was written
-     * @throws IOException IOException
-     */
-    public static long appendData(RandomAccessFile dataFile, byte[] data, Record recordType) throws IOException {
-        long offset = dataFile.length();
-        int headerLen = recordType.length;
-        byte[] bytes = new byte[headerLen + data.length];
-
-        dataFile.seek(offset);
-
-        byte[] headerArray = FileIO.intToBytes(headerLen, data.length);
-        System.arraycopy(headerArray, 0, bytes, 0, headerLen);
-
-        System.arraycopy(data, 0, bytes, headerLen, data.length);
-        dataFile.write(bytes);
-
-        return offset;
-    }
-
-    /**
-     * Read current object from the given offset. Object is either key or value.
-     *
-     * @param raf    file to read
-     * @param offset offset at which current data is stored
-     * @param objectType type of the object to read - key or value
-     * @return value in byte[]
-     * @throws IOException IOException
-     */
-    public static byte[] readObject(RandomAccessFile raf, Long offset, Record objectType) throws IOException {
-
-        raf.seek(offset);
-
-        byte[] header = new byte[objectType.length];
-        raf.read(header, 0, objectType.length);
-        int lenOfData = FileIO.bytesToInt(header);
-
-        byte[] data = new byte[lenOfData];
-        raf.read(data, 0, lenOfData);
-
-        return data;
-    }
-
-    /**
-     * Find all files from the given level.
+     * Append data to file and return the offset where it was written to.
      * 
-     * @param dataDirectory parent directory
-     * @param level level of level com[action
-     * @return File[] files
+     * @param dataFile file
+     * @param data byte[] of data
+     * @return offset
+     * @throws IOException
      */
-    public static File[] findFiles(String dataDirectory, int level) {
-        File dir = new File(dataDirectory);
-
-        return dir.listFiles(new FilenameFilter() {
-
-            @Override
-            public boolean accept(File dir1, String name) {
-                return name.matches("^l" + level + "_[0-9]+\\.[0-9]+\\.idx$");
-            }
-        });
+    public static long appendData(RandomAccessFile dataFile, byte[] data) throws IOException {
+    	long offset = dataFile.length();
+    	dataFile.write(data);
+    	return offset;
     }
     
+    /**
+     * Find all files from the given level, sorted oldest to newest.
+     * 
+     * @param dataDirectory parent directory
+     * @param level level of LSM Tree
+     * @return File[] files
+     */
+	public static File[] findFiles(String dataDirectory, int level) {
+		return findFiles(dataDirectory, level, Comparator.comparingLong(File::lastModified));
+	}
+	
+	/**
+	 * Find all files from the given level, sorted by comparator
+	 * 
+	 * @param dataDirectory directory where files reside
+	 * @param level level of LSM Tree
+	 * @param comparator comparator to sort files
+	 * @return File[] files
+	 */
+	public static File[] findFiles(String dataDirectory, int level, Comparator<File> comparator) {
+		File dir = new File(dataDirectory);
+
+		File[] files = dir.listFiles(new FilenameFilter() {
+
+			@Override
+			public boolean accept(File dir1, String name) {
+				return name.matches("^l" + level + "_[0-9]+\\.[0-9]+\\.idx$");
+			}
+		});
+
+		Arrays.sort(files, comparator);
+		return files;
+	}
+	
     public static RandomAccessFile createDatFromIdx(String idxFile) {
         RandomAccessFile raf = null;
         try {
@@ -292,4 +278,60 @@ public class FileIO {
         return bytes;
     }
 
+	public static KVPair readKVPair(String dataFilename, Long offset) throws IOException {
+        RandomAccessFile raf = new RandomAccessFile(dataFilename, "r");
+
+        int keyLen = bytesToInt(readBytes(raf, offset, KEY.length));
+        offset += KEY.length;
+        
+        byte[] keyData = readBytes(raf, offset, keyLen);
+        offset += keyLen;
+        
+        int valLen = bytesToInt(readBytes(raf, offset, VALUE.length));
+        offset += VALUE.length;
+        
+        byte[] valueData = readBytes(raf, offset, valLen);
+        
+		return new KVPair(keyData, valueData);
+	}
+
+	public static byte[] readKVPairBytes(RandomAccessFile raf, Long offset) throws IOException {
+        raf.seek(offset);
+
+        byte[] keyHeader = new byte[KEY.length];
+        raf.read(keyHeader, 0, KEY.length);
+        int lenOfKey = FileIO.bytesToInt(keyHeader);
+
+        byte[] key = new byte[lenOfKey];
+        raf.read(key, 0, lenOfKey);
+
+        byte[] valHeader = new byte[VALUE.length];
+        raf.read(valHeader, 0, VALUE.length);
+        int lenOfVal = FileIO.bytesToInt(valHeader);
+
+        byte[] val = new byte[lenOfVal];
+        raf.read(val, 0, lenOfVal);
+        
+        byte[] obj = new byte[KEY.length + VALUE.length + key.length + val.length];
+        int curPos = 0;
+        System.arraycopy(keyHeader, 0, obj, curPos, KEY.length);
+        curPos += KEY.length;
+
+        System.arraycopy(key, 0, obj, curPos, key.length);
+        curPos += key.length;
+        
+        System.arraycopy(valHeader, 0, obj, curPos, VALUE.length);
+        curPos += VALUE.length;
+
+        System.arraycopy(val, 0, obj, curPos, val.length);
+        
+        return obj;
+	}
+
+	private static byte[] readBytes(RandomAccessFile raf, Long offset, int len) throws IOException {
+		raf.seek(offset);
+		byte[] b = new byte[len];
+		raf.read(b, 0, len);
+		return b;
+	}
 }
