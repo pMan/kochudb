@@ -1,9 +1,12 @@
 package com.kochudb.io;
 
-import com.kochudb.k.Record;
-import com.kochudb.types.ByteArrayKey;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -11,7 +14,9 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
+
+import com.kochudb.types.ByteArrayKey;
 
 class FileIOTest {
 
@@ -44,7 +49,7 @@ class FileIOTest {
         // Run the test
         //final long result = FileIO.appendData(dataFile, "t".getBytes(), Record.KEY);
 
-        assertThrows(IOException.class, () -> FileIO.appendData(dataFile, "t".getBytes(), Record.KEY));
+        assertThrows(IOException.class, () -> FileIO.appendData(dataFile, "t".getBytes()));
         // Verify the results
         //assertEquals(0L, result);
 
@@ -57,30 +62,30 @@ class FileIOTest {
         final RandomAccessFile dataFile = new RandomAccessFile("./filename", "r");
 
         // Run the test
-        assertThrows(IOException.class, () -> FileIO.appendData(dataFile, "content".getBytes(), Record.KEY));
+        assertThrows(IOException.class, () -> FileIO.appendData(dataFile, "content".getBytes()));
 
         dataFile.close();
     }
 
     @Test
-    void testReadObject() throws Exception {
+    void testReadBytes() throws Exception {
         // Setup
         final RandomAccessFile raf = new RandomAccessFile("filename", "r");
 
         // Run the test
-        final byte[] result = FileIO.readObject(raf, 0L, Record.KEY);
+        final byte[] result = FileIO.readBytes(raf, 0L, 1);
 
         // Verify the results
-        assertArrayEquals("t".getBytes(), result);
+        assertArrayEquals(new byte[] {1}, result);
     }
 
     @Test
-    void testReadObject_ThrowsIOException() throws Exception {
+    void testReadBytes_ThrowsIOException() throws Exception {
         // Setup
         final RandomAccessFile raf = new RandomAccessFile("./filename", "r");
 
         // Run the test
-        assertThrows(FileNotFoundException.class, () -> FileIO.readObject(new RandomAccessFile("./filename/123", "r"), 0L, Record.KEY));
+        assertThrows(FileNotFoundException.class, () -> FileIO.readBytes(new RandomAccessFile("./filename/123", "r"), 0L, 1));
 
         raf.close();
     }

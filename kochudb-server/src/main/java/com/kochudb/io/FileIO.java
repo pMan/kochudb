@@ -328,7 +328,7 @@ public class FileIO {
         return obj;
 	}
 
-	private static byte[] readBytes(RandomAccessFile raf, Long offset, int len) throws IOException {
+	public static byte[] readBytes(RandomAccessFile raf, Long offset, int len) throws IOException {
 		raf.seek(offset);
 		byte[] b = new byte[len];
 		raf.read(b, 0, len);
