@@ -23,7 +23,7 @@ import com.kochudb.tasks.MemTableFlusher;
 /**
  * LSM Tree implementing basic operation on data store
  */
-public class LSMTree implements KVStorage<ByteArrayKey, ByteArrayValue> {
+public class LSMTree implements KVStorage<ByteArrayKey, ByteArray> {
 
     private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
 
@@ -102,7 +102,7 @@ public class LSMTree implements KVStorage<ByteArrayKey, ByteArrayValue> {
      * Search in-memory first, then disk
      */
     @Override
-    public ByteArrayValue get(ByteArrayKey key) {
+    public ByteArray get(ByteArrayKey key) {
         if (memTable.containsKey(key))
             return memTable.get(key).val;
 
@@ -129,7 +129,7 @@ public class LSMTree implements KVStorage<ByteArrayKey, ByteArrayValue> {
      * is restricted to 4MB
      */
     @Override
-    public byte[] set(ByteArrayKey key, ByteArrayValue val) {
+    public byte[] set(ByteArrayKey key, ByteArray val) {
         // start memTable flusher thread
         if (curSkipListSize >= maxSkipListSize) {
             memTableQueue.add(memTable);
@@ -155,7 +155,7 @@ public class LSMTree implements KVStorage<ByteArrayKey, ByteArrayValue> {
      */
     @Override
     public byte[] del(ByteArrayKey key) {
-        memTable.put(key, new ByteArrayValue());
+        memTable.put(key, new ByteArray());
         return "ok".getBytes();
     }
 }

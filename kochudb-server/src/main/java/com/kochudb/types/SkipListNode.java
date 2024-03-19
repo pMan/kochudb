@@ -9,7 +9,7 @@ public class SkipListNode {
     ByteArrayKey key;
     
     // value of type ByteArrayValue
-    ByteArrayValue val;
+    ByteArray val;
 
     // references to all four neighbors
     public SkipListNode left, right, up, down;
@@ -20,7 +20,7 @@ public class SkipListNode {
      * @param key key
      * @param val value
      */
-    public SkipListNode(ByteArrayKey key, ByteArrayValue val) {
+    public SkipListNode(ByteArrayKey key, ByteArray val) {
         this.key = key;
         this.val = val;
 
@@ -34,12 +34,12 @@ public class SkipListNode {
         return key;
     }
     
-    public ByteArrayValue getValue() {
+    public ByteArray getValue() {
         return val;
     }
     
     @Override
     public String toString() {
-    	return new String(key.getBytes());
+    	return new String(key.serialize());
     }
 }

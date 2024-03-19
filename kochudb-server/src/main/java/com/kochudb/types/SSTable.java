@@ -48,7 +48,7 @@ public class SSTable {
      * @param key search key
      * @return value for the key
      */
-    public ByteArrayValue search(ByteArrayKey key) {
+    public ByteArray search(ByteArrayKey key) {
         int level = 0;
         
         // sorted newest first
@@ -72,13 +72,13 @@ public class SSTable {
                 } catch (IOException e) {
                     logger.warn("Error reading data: {}", e.getMessage());
                     e.printStackTrace();
-                    return new ByteArrayValue();
+                    return new ByteArray();
                 }
             }
             level++;
             indexFiles = FileIO.findFiles(basePath, level);
         }
         logger.debug("Key not found");
-        return new ByteArrayValue();
+        return new ByteArray();
     }
 }

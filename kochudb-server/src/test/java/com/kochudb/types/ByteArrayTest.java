@@ -42,6 +42,6 @@ class ByteArrayTest {
 
     @Test
     void testGetBytes() {
-        assertArrayEquals("t".getBytes(), byteArrayUnderTest.getBytes());
+        assertArrayEquals("t".getBytes(), byteArrayUnderTest.serialize());
     }
 }

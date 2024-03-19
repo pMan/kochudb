@@ -256,28 +256,6 @@ public class FileIO {
         return aLong;
     }
 
-    /**
-     * Compress byte[]
-     * 
-     * @param bytes byte[] to compress
-     * @return byte[]
-     * @throws IOException
-     */
-    public static byte[] compress(byte[] bytes) throws IOException {
-        return bytes;
-    }
-
-    /**
-     * Decompress byte[]
-     * 
-     * @param bytes byte[] to decompress
-     * @return byte[]
-     * @throws IOException
-     */
-    public static byte[] decompress(byte[] bytes) throws IOException {
-        return bytes;
-    }
-
 	public static KVPair readKVPair(String dataFilename, Long offset) throws IOException {
         RandomAccessFile raf = new RandomAccessFile(dataFilename, "r");
 
@@ -295,24 +273,31 @@ public class FileIO {
 		return new KVPair(keyData, valueData);
 	}
 
+	/**
+	 * read the bytes corresponding to one serialized KVPair object
+	 * 
+	 * @param raf data file to read from
+	 * @param offset offset position
+	 * @return byte[] a serialized KVPair
+	 * @throws IOException
+	 */
 	public static byte[] readKVPairBytes(RandomAccessFile raf, Long offset) throws IOException {
         raf.seek(offset);
 
-        byte[] keyHeader = new byte[KEY.length];
-        raf.read(keyHeader, 0, KEY.length);
-        int lenOfKey = FileIO.bytesToInt(keyHeader);
-
-        byte[] key = new byte[lenOfKey];
-        raf.read(key, 0, lenOfKey);
-
-        byte[] valHeader = new byte[VALUE.length];
-        raf.read(valHeader, 0, VALUE.length);
-        int lenOfVal = FileIO.bytesToInt(valHeader);
-
-        byte[] val = new byte[lenOfVal];
-        raf.read(val, 0, lenOfVal);
+        byte[] keyHeader = readBytes(raf, offset, KEY.length);
+        offset += KEY.length;
         
-        byte[] obj = new byte[KEY.length + VALUE.length + key.length + val.length];
+        int keyLen = bytesToInt(keyHeader);
+        byte[] key = readBytes(raf, offset, keyLen);
+        offset += keyLen;
+
+        byte[] valHeader = readBytes(raf, offset, VALUE.length);
+        offset += VALUE.length;
+        
+        int valLen = bytesToInt(valHeader);
+        byte[] val = readBytes(raf, offset, valLen);
+        
+        byte[] obj = new byte[KEY.length + VALUE.length + keyLen + valLen];
         int curPos = 0;
         System.arraycopy(keyHeader, 0, obj, curPos, KEY.length);
         curPos += KEY.length;
@@ -328,6 +313,15 @@ public class FileIO {
         return obj;
 	}
 
+	/**
+	 * read len number of bytes from the given offset
+	 * 
+	 * @param raf file to read from
+	 * @param offset offset position
+	 * @param len number of bytes to read
+	 * @return byte array
+	 * @throws IOException
+	 */
 	public static byte[] readBytes(RandomAccessFile raf, Long offset, int len) throws IOException {
 		raf.seek(offset);
 		byte[] b = new byte[len];
