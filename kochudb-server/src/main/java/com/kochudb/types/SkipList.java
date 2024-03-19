@@ -84,7 +84,7 @@ public class SkipList {
      * @param key key
      * @param val value
      */
-    public void put(ByteArrayKey key, ByteArrayValue val) {
+    public void put(ByteArrayKey key, ByteArray val) {
         SkipListNode found = find(key);
         if (found.key != null && found.key.compareTo(key) == 0) {
             found.val = val;

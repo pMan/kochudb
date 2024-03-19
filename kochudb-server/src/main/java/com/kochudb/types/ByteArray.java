@@ -1,23 +1,21 @@
 package com.kochudb.types;
 
-import com.kochudb.serde.Serde;
-
 /**
  * A serializable, immutable byte[]
  */
-public class ByteArrayValue implements Serde<ByteArrayValue> {
+public class ByteArray {
 
 	byte[] byteArray;
     
-    public ByteArrayValue(String key) {
+    public ByteArray(String key) {
         byteArray = key == null ? new byte[] {} : key.getBytes();
     }
     
-    public ByteArrayValue(byte[] bytes) {
+    public ByteArray(byte[] bytes) {
         byteArray = bytes;
     }
     
-    public ByteArrayValue() {
+    public ByteArray() {
         byteArray = new byte[] {};
     }
 
@@ -25,23 +23,16 @@ public class ByteArrayValue implements Serde<ByteArrayValue> {
         return byteArray.length;
     }
     
-    public byte[] getBytes() {
-        return byteArray;
-    }
-    
-    @Override
     public byte[] serialize() {
         return byteArray;
     }
-    
-    @Override
-    public ByteArrayValue deserialize(byte[] bytes) {
-    	return new ByteArrayValue(bytes);
-    }
-    
+
+	public static ByteArray deserialize(byte[] bytes) {
+		return new ByteArray(bytes);
+	}
+
     @Override
     public String toString() {
     	return new String(byteArray);
     }
-
 }

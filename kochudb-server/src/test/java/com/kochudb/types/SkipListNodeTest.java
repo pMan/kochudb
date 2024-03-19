@@ -18,7 +18,7 @@ class SkipListNodeTest {
     
     @BeforeAll
     public void setUpBeforeAll() {
-        node = new SkipListNode(new ByteArrayKey("Key".getBytes()), new ByteArrayValue("Value".getBytes()));
+        node = new SkipListNode(new ByteArrayKey("Key".getBytes()), new ByteArray("Value".getBytes()));
         node.right = new SkipListNode(null, null);
     }
 
@@ -30,7 +30,7 @@ class SkipListNodeTest {
         
         assertTrue(new ByteArrayKey("Key".getBytes()).compareTo(node.getKey()) == 0);
         
-        assertArrayEquals("Value".getBytes(), node.getValue().getBytes());
+        assertArrayEquals("Value".getBytes(), node.getValue().serialize());
         
         assertNull(node.down);
         

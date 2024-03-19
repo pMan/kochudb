@@ -60,17 +60,17 @@ class SkipListTest {
         final ByteArrayKey key = new ByteArrayKey("t");
 
         // Run the test
-        skipListUnderTest.put(key, new ByteArrayValue("content".getBytes()));
+        skipListUnderTest.put(key, new ByteArray("content".getBytes()));
 
         // Verify the results
-        assertArrayEquals("content".getBytes(), skipListUnderTest.get(key).getValue().getBytes());
+        assertArrayEquals("content".getBytes(), skipListUnderTest.get(key).getValue().serialize());
     }
 
     @Test
     void testDel() {
         // Setup
         final ByteArrayKey key = new ByteArrayKey("t");
-        skipListUnderTest.put(key, new ByteArrayValue());
+        skipListUnderTest.put(key, new ByteArray());
 
         // Run the test
         final boolean result = skipListUnderTest.del(key);
@@ -84,7 +84,7 @@ class SkipListTest {
     @Test
     void testUnlinkSkipListNode() {
         // Setup
-        final SkipListNode node = new SkipListNode(new ByteArrayKey("t"), new ByteArrayValue("content".getBytes()));
+        final SkipListNode node = new SkipListNode(new ByteArrayKey("t"), new ByteArray("content".getBytes()));
 
         final SkipListNode head = new SkipListNode(null, null);
         final SkipListNode tail = new SkipListNode(null, null);
@@ -113,8 +113,8 @@ class SkipListTest {
     @Test
     void testAddNewSkipListNodeToTower() {
         // Setup
-        final SkipListNode p = new SkipListNode(new ByteArrayKey("t"), new ByteArrayValue("content".getBytes()));
-        final SkipListNode q = new SkipListNode(new ByteArrayKey("t"), new ByteArrayValue("content".getBytes()));
+        final SkipListNode p = new SkipListNode(new ByteArrayKey("t"), new ByteArray("content".getBytes()));
+        final SkipListNode q = new SkipListNode(new ByteArrayKey("t"), new ByteArray("content".getBytes()));
         final SkipListNode dummy = new SkipListNode(new ByteArrayKey("t"), null);
         final SkipListNode tail = new SkipListNode(null, null);
         p.right = tail;
@@ -130,8 +130,8 @@ class SkipListTest {
     @Test
     void testInsertRight() {
         // Setup
-        final SkipListNode p = new SkipListNode(new ByteArrayKey("t"), new ByteArrayValue("content".getBytes()));
-        final SkipListNode q = new SkipListNode(new ByteArrayKey("t"), new ByteArrayValue("content".getBytes()));
+        final SkipListNode p = new SkipListNode(new ByteArrayKey("t"), new ByteArray("content".getBytes()));
+        final SkipListNode q = new SkipListNode(new ByteArrayKey("t"), new ByteArray("content".getBytes()));
 
         final SkipListNode tail = new SkipListNode(null, null);
         p.right = tail;

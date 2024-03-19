@@ -6,8 +6,6 @@ import static com.kochudb.k.K.LEVEL_MAX_SIZE_MULTIPLIER;
 import static com.kochudb.k.K.LEVEL_ZERO_FILE_MAX_SIZE_KB;
 import static com.kochudb.k.K.LEVEL_ZERO_NUM_FILES;
 import static com.kochudb.k.K.NUM_LEVELS;
-import static com.kochudb.k.Record.KEY;
-import static com.kochudb.k.Record.VALUE;
 
 import java.io.File;
 import java.io.IOException;
@@ -180,30 +178,27 @@ public class LevelCompactor implements Runnable {
 		String[] filenames = FileIO.createNewIdxAndDataFilenames(curLevel + 1);
 		String newIdxFilename = filenames[0].replaceFirst(".idx$", ".idxtmp");
 		String newDatFilename = filenames[1];
+		logger.debug("New Temp file name: {}", newIdxFilename);
+
+		Map<ByteArrayKey, Long> updatedIdxMap = new HashMap<>();
+		Map<File, RandomAccessFile> openedFiles = new HashMap<>();
+
+		openedFiles.put(file1, FileIO.createDatFromIdx(file1.getAbsolutePath()));
+		openedFiles.put(file2, FileIO.createDatFromIdx(file2.getAbsolutePath()));
 
 		try (RandomAccessFile newDataFile = new RandomAccessFile(newDatFilename, "rw")) {
 
-			logger.debug("New Temp file name: {}", newIdxFilename);
-
-			Map<ByteArrayKey, Long> updatedIdxMap = new HashMap<>();
-			Map<File, RandomAccessFile> openedFiles = new HashMap<>();
-
-			openedFiles.put(file1, FileIO.createDatFromIdx(file1.getAbsolutePath()));
-			openedFiles.put(file2, FileIO.createDatFromIdx(file2.getAbsolutePath()));
-
 			for (Entry<ByteArrayKey, Object[]> entry : mergedMap.entrySet()) {
-				ByteArrayKey key = entry.getKey();
 				File file = (File) entry.getValue()[1];
 				Long offset = (Long) entry.getValue()[0];
 
 				byte[] serializedKVPair = FileIO.readKVPairBytes(openedFiles.get(file), offset);
 				Long newOffset = FileIO.appendData(newDataFile, serializedKVPair);
 
-				updatedIdxMap.put(key, newOffset);
+				updatedIdxMap.put(entry.getKey(), newOffset);
 				// f.setLastModified(Instant.now().getEpochSecond() * 1000);
 			}
 			newDataFile.getFD().sync();
-			//newDatRaf.close();
 
 			for (RandomAccessFile file : openedFiles.values())
 				file.close();
@@ -221,6 +216,10 @@ public class LevelCompactor implements Runnable {
 		} catch (IOException e) {
 			logger.warn("Compaction failed: {}", e.getMessage());
 			e.printStackTrace();
+		} finally {
+			for (RandomAccessFile file: openedFiles.values()) {
+				try { file.close(); } catch (IOException e) { }
+			}
 		}
 		return null;
 	}

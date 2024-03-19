@@ -1,13 +1,9 @@
 package com.kochudb.types;
 
-import com.kochudb.serde.Serde;
-
 /**
  * A comparable, serializable, immutable byte[]
  */
-public class ByteArrayKey implements Comparable<ByteArrayKey>, Serde<ByteArrayKey> {
-
-	byte[] byteArray;
+public class ByteArrayKey extends ByteArray implements Comparable<ByteArrayKey> {
     
     public ByteArrayKey(String key) {
         byteArray = key.getBytes();
@@ -21,39 +17,17 @@ public class ByteArrayKey implements Comparable<ByteArrayKey>, Serde<ByteArrayKe
         byteArray = new byte[] {};
     }
 
-    public int length() {
-        return byteArray.length;
-    }
-    
     @Override
     public int compareTo(ByteArrayKey o) {
+    	byte[] oByteArray = o.serialize();
         for (int i = 0, j = 0; i < this.byteArray.length && j < o.length(); i++, j++) {
-            int a = (this.byteArray[i] & 0xff);
-            int b = (o.getBytes()[j] & 0xff);
+            int a = (byteArray[i] & 0xff);
+            int b = (oByteArray[j] & 0xff);
             if (a != b) {
                 return a - b;
             }
         }
         return this.byteArray.length - o.length();
-    }
-
-    public byte[] getBytes() {
-        return byteArray;
-    }
-    
-    @Override
-    public byte[] serialize() {
-        return byteArray;
-    }
-    
-    @Override
-    public ByteArrayKey deserialize(byte[] bytes) {
-    	return new ByteArrayKey(bytes);
-    }
-    
-    @Override
-    public String toString() {
-    	return new String(byteArray);
     }
 
 }

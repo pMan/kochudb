@@ -23,7 +23,7 @@ class SSTableTest {
         final ByteArrayKey key = new ByteArrayKey("t");
 
         // Run the test
-        final ByteArrayValue result = ssTableUnderTest.search(key);
+        final ByteArray result = ssTableUnderTest.search(key);
 
         //assertNull(ssTableUnderTest.search(key));
         // Verify the results
