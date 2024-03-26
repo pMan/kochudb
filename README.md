@@ -31,6 +31,23 @@ Implemented based on Log-Structured Merge (LSM) tree.
 - Compaction thread runs periodically checking against the compaction criteria to begin a fresh compaction.
 - Keys are restricted to 256 bytes long `String` types, where as values can be any `Serializable` object of size 4MB.
 
+## How to run
+#### Clone and build kochudb
+```
+git clone https://github.com/pMan/kochudb.git
+cd kochudb
+mvn clean package -DskipTests
+```
+#### Run server
+```
+cd kochudb-server
+java -jar target/kochudb-server*.jar
+```
+
+#### Run cli client
+```
+java -jar cli-client/target/cli-client*.jar
+```
 ## Possible improvements
 * __Bloomfilter__ - for lookup optimization
 * __Write-Ahead Log__ - to improve durability
