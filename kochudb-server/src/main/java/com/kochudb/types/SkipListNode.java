@@ -5,11 +5,8 @@ package com.kochudb.types;
  */
 public class SkipListNode {
     
-    // key of type comparable byte[]
-    ByteArrayKey key;
-    
-    // value of type ByteArrayValue
-    ByteArray val;
+    // key/value of type ByteArray
+    ByteArray key, val;
 
     // references to all four neighbors
     public SkipListNode left, right, up, down;
@@ -20,7 +17,7 @@ public class SkipListNode {
      * @param key key
      * @param val value
      */
-    public SkipListNode(ByteArrayKey key, ByteArray val) {
+    public SkipListNode(ByteArray key, ByteArray val) {
         this.key = key;
         this.val = val;
 
@@ -30,7 +27,7 @@ public class SkipListNode {
         down = null;
     }
     
-    public ByteArrayKey getKey() {
+    public ByteArray getKey() {
         return key;
     }
     

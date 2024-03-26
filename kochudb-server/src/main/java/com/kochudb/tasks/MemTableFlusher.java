@@ -11,7 +11,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.kochudb.io.FileIO;
-import com.kochudb.types.ByteArrayKey;
+import com.kochudb.types.ByteArray;
 import com.kochudb.types.KVPair;
 import com.kochudb.types.SkipList;
 import com.kochudb.types.SkipListNode;
@@ -23,7 +23,7 @@ public class MemTableFlusher implements Runnable {
     Deque<SkipList> memTableQueue;
     
     // key and the offset where the record is stored in file
-    Map<ByteArrayKey, Long> keyToOffsetMap;
+    Map<ByteArray, Long> keyToOffsetMap;
 
     public MemTableFlusher(Deque<SkipList> memTableQueue) {
         this.memTableQueue = memTableQueue;

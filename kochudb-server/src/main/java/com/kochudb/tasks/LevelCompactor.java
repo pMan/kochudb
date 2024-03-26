@@ -22,7 +22,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.kochudb.io.FileIO;
-import com.kochudb.types.ByteArrayKey;
+import com.kochudb.types.ByteArray;
 import com.kochudb.types.SSTable;
 
 public class LevelCompactor implements Runnable {
@@ -157,14 +157,14 @@ public class LevelCompactor implements Runnable {
 	 */
 	private String mergeTwoFiles(File file1, File file2, int curLevel) {
 
-		Map<ByteArrayKey, Object[]> mergedMap = new TreeMap<>();
+		Map<ByteArray, Object[]> mergedMap = new TreeMap<>();
 
 		// order of files is important. file1 was created earlier than file2
 		for (File file : new File[] { file1, file2 }) {
-			Map<ByteArrayKey, Long> indexMap;
+			Map<ByteArray, Long> indexMap;
 			try {
 				indexMap = FileIO.readIndexFile(file.getCanonicalPath());
-				for (Map.Entry<ByteArrayKey, Long> entry : indexMap.entrySet()) {
+				for (Map.Entry<ByteArray, Long> entry : indexMap.entrySet()) {
 					mergedMap.put(entry.getKey(), new Object[] { entry.getValue(), file });
 				}
 			} catch (IOException e) {
@@ -180,7 +180,7 @@ public class LevelCompactor implements Runnable {
 		String newDatFilename = filenames[1];
 		logger.debug("New Temp file name: {}", newIdxFilename);
 
-		Map<ByteArrayKey, Long> updatedIdxMap = new HashMap<>();
+		Map<ByteArray, Long> updatedIdxMap = new HashMap<>();
 		Map<File, RandomAccessFile> openedFiles = new HashMap<>();
 
 		openedFiles.put(file1, FileIO.createDatFromIdx(file1.getAbsolutePath()));
@@ -188,7 +188,7 @@ public class LevelCompactor implements Runnable {
 
 		try (RandomAccessFile newDataFile = new RandomAccessFile(newDatFilename, "rw")) {
 
-			for (Entry<ByteArrayKey, Object[]> entry : mergedMap.entrySet()) {
+			for (Entry<ByteArray, Object[]> entry: mergedMap.entrySet()) {
 				File file = (File) entry.getValue()[1];
 				Long offset = (Long) entry.getValue()[0];
 

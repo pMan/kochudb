@@ -1,12 +1,11 @@
 package com.kochudb.types;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 import java.io.File;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 class SSTableTest {
 
@@ -20,7 +19,7 @@ class SSTableTest {
     @Test
     void testSearch() {
         // Setup
-        final ByteArrayKey key = new ByteArrayKey("t");
+        final ByteArray key = new ByteArray("t");
 
         // Run the test
         final ByteArray result = ssTableUnderTest.search(key);

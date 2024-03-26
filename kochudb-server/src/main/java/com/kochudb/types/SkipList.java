@@ -42,7 +42,7 @@ public class SkipList {
      * @param key key
      * @return a SkipListNode with the 'key' of floor(key)
      */
-    public SkipListNode find(ByteArrayKey key) {
+    public SkipListNode find(ByteArray key) {
         SkipListNode cur = head;
 
         while (true) {
@@ -63,7 +63,7 @@ public class SkipList {
      * @param key key
      * @return a SkipListNode or null
      */
-    public SkipListNode get(ByteArrayKey key) {
+    public SkipListNode get(ByteArray key) {
         SkipListNode found = find(key);
 
         if (found.key != null && found.key.compareTo(key) == 0)
@@ -72,7 +72,7 @@ public class SkipList {
         return null;
     }
 
-    public boolean containsKey(ByteArrayKey key) {
+    public boolean containsKey(ByteArray key) {
         SkipListNode node = find(key);
         return node.key != null && node.key.compareTo(key) == 0;
     }
@@ -84,7 +84,7 @@ public class SkipList {
      * @param key key
      * @param val value
      */
-    public void put(ByteArrayKey key, ByteArray val) {
+    public void put(ByteArray key, ByteArray val) {
         SkipListNode found = find(key);
         if (found.key != null && found.key.compareTo(key) == 0) {
             found.val = val;
@@ -119,7 +119,7 @@ public class SkipList {
      * @param key key
      * @return true if a SkipListNode was removed, false if SkipListNode was not found
      */
-    public boolean del(ByteArrayKey key) {
+    public boolean del(ByteArray key) {
         SkipListNode found = find(key);
         if (found.key != null && found.key.compareTo(key) == 0) {
             while (found != null) {

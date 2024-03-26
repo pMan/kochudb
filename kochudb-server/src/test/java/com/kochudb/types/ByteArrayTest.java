@@ -7,11 +7,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ByteArrayTest {
 
-    private ByteArrayKey byteArrayUnderTest;
+    private ByteArray byteArrayUnderTest;
 
     @BeforeEach
     void setUp() {
-        byteArrayUnderTest = new ByteArrayKey("t".getBytes());
+        byteArrayUnderTest = new ByteArray("t".getBytes());
     }
 
     @Test
@@ -22,7 +22,7 @@ class ByteArrayTest {
     @Test
     void testCompareTo() {
         // Setup
-        final ByteArrayKey o = new ByteArrayKey("t");
+        final ByteArray o = new ByteArray("t");
 
         // Run the test
         final int result = byteArrayUnderTest.compareTo(o);
@@ -34,7 +34,7 @@ class ByteArrayTest {
     @Test
     void testCompareTo_ThrowsNullPointerException() {
         // Setup
-        final ByteArrayKey o = null;
+        final ByteArray o = null;
 
         // Run the test
         assertThrows(NullPointerException.class, () -> byteArrayUnderTest.compareTo(o));

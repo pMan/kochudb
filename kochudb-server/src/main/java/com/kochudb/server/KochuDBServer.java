@@ -13,7 +13,6 @@ import org.apache.logging.log4j.Logger;
 
 import com.kochudb.shared.Request;
 import com.kochudb.shared.Response;
-import com.kochudb.types.ByteArrayKey;
 import com.kochudb.types.ByteArray;
 import com.kochudb.types.LSMTree;
 
@@ -25,7 +24,7 @@ public class KochuDBServer extends Thread {
     
     static boolean alive;
     
-    KVStorage<ByteArrayKey, ByteArray> storageEngine;
+    KVStorage<ByteArray, ByteArray> storageEngine;
 
     private static int port = 2222;
     
@@ -57,9 +56,9 @@ public class KochuDBServer extends Thread {
 
 				try {
 					byte[] response = switch (req.getCommand()) {
-					case "get" -> storageEngine.get(new ByteArrayKey(req.getKey())).serialize();
-					case "set" -> storageEngine.set(new ByteArrayKey(req.getKey()), new ByteArray(req.getValue()));
-					case "del" -> storageEngine.del(new ByteArrayKey(req.getKey()));
+					case "get" -> storageEngine.get(new ByteArray(req.getKey())).serialize();
+					case "set" -> storageEngine.set(new ByteArray(req.getKey()), new ByteArray(req.getValue()));
+					case "del" -> storageEngine.del(new ByteArray(req.getKey()));
 					default -> "Invalid Operation".getBytes();
 					};
 

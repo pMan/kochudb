@@ -5,10 +5,10 @@ import static com.kochudb.k.Record.VALUE;
 
 import com.kochudb.io.FileIO;
 
-public record KVPair(ByteArrayKey key, ByteArray val) {
+public record KVPair(ByteArray key, ByteArray val) {
 
 	public KVPair(byte[] key, byte[] value) {
-		this(new ByteArrayKey(key), new ByteArray(value));
+		this(new ByteArray(key), new ByteArray(value));
 	}
 	
 	/**

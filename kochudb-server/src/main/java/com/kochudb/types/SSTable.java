@@ -48,7 +48,7 @@ public class SSTable {
      * @param key search key
      * @return value for the key
      */
-    public ByteArray search(ByteArrayKey key) {
+    public ByteArray search(ByteArray key) {
         int level = 0;
         
         // sorted newest first
@@ -63,7 +63,7 @@ public class SSTable {
                 
                 try {
                 	String absFilePath = indexFile.getAbsolutePath();
-                    Map<ByteArrayKey, Long> curIndex = FileIO.readIndexFile(absFilePath);
+                    Map<ByteArray, Long> curIndex = FileIO.readIndexFile(absFilePath);
 
                     if (curIndex.containsKey(key)) {
                         KVPair record = FileIO.readKVPair(absFilePath.replace(".idx", ".dat"), curIndex.get(key));
