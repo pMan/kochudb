@@ -22,6 +22,11 @@
 	
 	<dependencies>
 		<dependency>
+			<groupId>com.kochudb.common</groupId>
+			<artifactId>kochudb-shared</artifactId>
+			<version>0.0.1</version>
+		</dependency>
+		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-server</artifactId>
 			<version>12.0.5</version>

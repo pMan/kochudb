@@ -5,9 +5,9 @@ import static com.kochudb.k.Record.VALUE;
 
 import com.kochudb.io.FileIO;
 
-public record KVPair(ByteArray key, ByteArray val) {
+public record KeyValuePair(ByteArray key, ByteArray val) {
 
-	public KVPair(byte[] key, byte[] value) {
+	public KeyValuePair(byte[] key, byte[] value) {
 		this(new ByteArray(key), new ByteArray(value));
 	}
 	

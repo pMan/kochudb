@@ -1,67 +1,54 @@
 package com.kochudb.server;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.withSettings;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Properties;
+
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.Properties;
-
-import static org.mockito.Mockito.*;
-
 class KochuDBServerTest {
 
     @Mock
-    private KochuDBServer kochuDBServerUnderTest;
+    private static KochuDBServer kochuDBServerUnderTest;
 
     @Captor
     private ArgumentCaptor<String> captor;
 
-    Properties p = new Properties();
+    static Properties p = new Properties();
 
-    @Test
-    void testRun() throws Exception {
+    @BeforeAll
+    public static void setup() throws Exception {
         // Setup
-        // Run the test
         p.load(new FileInputStream("src/test/resources/application-test.properties"));
         kochuDBServerUnderTest = mock(KochuDBServer.class, withSettings().useConstructor(p));
 
         kochuDBServerUnderTest.start();
-
+    }
+    
+    @Test
+    void testRun() {
         verify(kochuDBServerUnderTest, timeout(100).atLeastOnce()).start();
         // Verify the results
     }
 
-
-    @Test
-    void testListen() throws IOException {
-        // Setup
-        Properties props = new Properties();
-        props.setProperty("server.port", "2023");
-        props.setProperty("data.dir", "data-test");
-        KochuDBServer kochuDBServerUnderTest1 = new KochuDBServer(props);
-        kochuDBServerUnderTest1.start();
-
+    @AfterAll
+    static void testTerminate() throws IOException {
         // Run the test
-        kochuDBServerUnderTest1.terminate();
-
-        // Verify the results
-    }
-
-    @Test
-    void testTerminate() throws IOException {
-        // Setup
-        Properties props = new Properties();
-        props.setProperty("server.port", "2023");
-        props.setProperty("data.dir", "data-test");
-        KochuDBServer kochuDBServerUnderTest1 = new KochuDBServer(props);
-        kochuDBServerUnderTest1.start();
-
-        // Run the test
-        kochuDBServerUnderTest1.terminate();
-
+        kochuDBServerUnderTest.terminate();
+        File dir = new File(p.getProperty("data.dir"));
+        if (dir.exists() && dir.isDirectory())
+        	dir.delete();
         // Verify the results
     }
 }

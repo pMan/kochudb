@@ -1,8 +1,5 @@
 package com.kochudb.io;
 
-import static com.kochudb.k.Record.KEY;
-import static com.kochudb.k.Record.VALUE;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
@@ -12,104 +9,16 @@ import java.lang.invoke.MethodHandles;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.Map;
-import java.util.TreeMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.kochudb.types.ByteArray;
-import com.kochudb.types.KVPair;
 import com.kochudb.types.LSMTree;
 
 public class FileIO {
 
     private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
 
-    /**
-     * Write the map of key to offset information to file. Generated index is not sparse.
-     *
-     * @param filename    name of Index file
-     * @param keyToOffset String key and corresponding offset in the data file
-     * @throws IOException IOException
-     */
-    public static void writeIndexFile(String filename, Map<ByteArray, Long> keyToOffset) {
-        logger.debug("Creating index file: {}", filename);
-
-        try (RandomAccessFile indexFile = new RandomAccessFile(filename, "rw")) {
-
-            for (Map.Entry<ByteArray, Long> entry: keyToOffset.entrySet()) {
-
-                byte[] keyBytes = entry.getKey().serialize();
-                Long value = entry.getValue();
-
-                byte[] offsetBytes = FileIO.longToBytes(value);
-                byte[] recWithSize = new byte[keyBytes.length + KEY.length + Long.BYTES];
-
-                recWithSize[0] = (byte) keyBytes.length;
-
-                System.arraycopy(keyBytes, 0, recWithSize, KEY.length, keyBytes.length);
-                System.arraycopy(offsetBytes, 0, recWithSize, KEY.length + keyBytes.length, Long.BYTES);
-
-                indexFile.seek(indexFile.length());
-                indexFile.write(recWithSize);
-            }
-
-            indexFile.getFD().sync();
-        } catch (FileNotFoundException fnfe) {
-            logger.error("File not found: {}", filename);
-            fnfe.printStackTrace();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Reads a .index file to a TreeMap and return it. Index file contains a string
-     * key and its offset in the corresponding data file.
-     *
-     * @param filename path to index file
-     * @return TreeMap
-     */
-    public static Map<ByteArray, Long> readIndexFile(String filename) {
-        logger.debug("Reading index file: {}", filename);
-
-        Map<ByteArray, Long> keyToOffset = new TreeMap<>();
-
-        try (RandomAccessFile raf = new RandomAccessFile(filename, "r")) {
-            raf.seek(0);
-            while (raf.getFilePointer() < raf.length()) {
-                // key
-                byte[] key = new byte[raf.read()];
-                raf.read(key, 0, key.length);
-
-                // offset where the value resides
-                byte[] nextEightBytes = new byte[Long.BYTES];
-                raf.read(nextEightBytes, 0, Long.BYTES);
-                long offset = FileIO.bytesToLong(nextEightBytes);
-
-                keyToOffset.put(new ByteArray(key), offset);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return keyToOffset;
-    }
-    
-    /**
-     * Append data to file and return the offset where it was written to.
-     * 
-     * @param dataFile file
-     * @param data byte[] of data
-     * @return offset
-     * @throws IOException
-     */
-    public static long appendData(RandomAccessFile dataFile, byte[] data) throws IOException {
-    	long offset = dataFile.length();
-    	dataFile.write(data);
-    	return offset;
-    }
-    
     /**
      * Find all files from the given level, sorted oldest to newest.
      * 
@@ -154,6 +63,11 @@ public class FileIO {
         return raf;
     }
     
+    /**
+     * create file names for the given level
+     * @param level
+     * @return
+     */
     public static String[] createNewIdxAndDataFilenames(int level) {
         String newFilename = FileIO.generateFilename();
         String newIdxFilename = newFilename + ".idx";
@@ -256,76 +170,4 @@ public class FileIO {
         return aLong;
     }
 
-	public static KVPair readKVPair(String dataFilename, Long offset) throws IOException {
-        RandomAccessFile raf = new RandomAccessFile(dataFilename, "r");
-
-        int keyLen = bytesToInt(readBytes(raf, offset, KEY.length));
-        offset += KEY.length;
-        
-        byte[] keyData = readBytes(raf, offset, keyLen);
-        offset += keyLen;
-        
-        int valLen = bytesToInt(readBytes(raf, offset, VALUE.length));
-        offset += VALUE.length;
-        
-        byte[] valueData = readBytes(raf, offset, valLen);
-        
-		return new KVPair(keyData, valueData);
-	}
-
-	/**
-	 * read the bytes corresponding to one serialized KVPair object
-	 * 
-	 * @param raf data file to read from
-	 * @param offset offset position
-	 * @return byte[] a serialized KVPair
-	 * @throws IOException
-	 */
-	public static byte[] readKVPairBytes(RandomAccessFile raf, Long offset) throws IOException {
-        raf.seek(offset);
-
-        byte[] keyHeader = readBytes(raf, offset, KEY.length);
-        offset += KEY.length;
-        
-        int keyLen = bytesToInt(keyHeader);
-        byte[] key = readBytes(raf, offset, keyLen);
-        offset += keyLen;
-
-        byte[] valHeader = readBytes(raf, offset, VALUE.length);
-        offset += VALUE.length;
-        
-        int valLen = bytesToInt(valHeader);
-        byte[] val = readBytes(raf, offset, valLen);
-        
-        byte[] obj = new byte[KEY.length + VALUE.length + keyLen + valLen];
-        int curPos = 0;
-        System.arraycopy(keyHeader, 0, obj, curPos, KEY.length);
-        curPos += KEY.length;
-
-        System.arraycopy(key, 0, obj, curPos, key.length);
-        curPos += key.length;
-        
-        System.arraycopy(valHeader, 0, obj, curPos, VALUE.length);
-        curPos += VALUE.length;
-
-        System.arraycopy(val, 0, obj, curPos, val.length);
-        
-        return obj;
-	}
-
-	/**
-	 * read len number of bytes from the given offset
-	 * 
-	 * @param raf file to read from
-	 * @param offset offset position
-	 * @param len number of bytes to read
-	 * @return byte array
-	 * @throws IOException
-	 */
-	public static byte[] readBytes(RandomAccessFile raf, Long offset, int len) throws IOException {
-		raf.seek(offset);
-		byte[] b = new byte[len];
-		raf.read(b, 0, len);
-		return b;
-	}
 }

@@ -30,6 +30,13 @@ cli-client/.settings
 cli-client/.classpath
 cli-client/.project
 cli-client/target*
+kochudb-commons/.settings
+kochudb-commons/.classpath
+kochudb-commons/.project
+kochudb-commons/target
+kochudb-commons/data*
+kochudb-commons/filename
+kochudb-commons/qodana.yaml
 kochudb-server/.settings
 kochudb-server/.classpath
 kochudb-server/.project

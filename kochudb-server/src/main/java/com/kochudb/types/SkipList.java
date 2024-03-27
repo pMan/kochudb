@@ -208,13 +208,11 @@ public class SkipList {
      * @return Iterable<SkipListNode>
      */
     public Iterator<SkipListNode> iterator() {
-
         return new Iterator<SkipListNode>() {
             SkipListNode currentNode;
 
             public Iterator<SkipListNode> init() {
                 currentNode = sentinel;
-
                 while (currentNode.down != null)
                     currentNode = currentNode.down;
 
@@ -235,7 +233,7 @@ public class SkipList {
     }
 
     /**
-     * helper function, prints current state of skipList
+     * print friendly representation of current state of the skipList
      */
     @Override
     public String toString() {
