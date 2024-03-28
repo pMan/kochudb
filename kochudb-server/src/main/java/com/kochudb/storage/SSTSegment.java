@@ -1,7 +1,12 @@
-package com.kochudb.types;
+package com.kochudb.storage;
 
 import static com.kochudb.k.Record.KEY;
 import static com.kochudb.k.Record.VALUE;
+import static com.kochudb.utils.ByteUtil.bytesToInt;
+import static com.kochudb.utils.ByteUtil.bytesToLong;
+import static com.kochudb.utils.ByteUtil.longToBytes;
+import static com.kochudb.utils.FileUtil.createDatFromIdx;
+import static com.kochudb.utils.FileUtil.createNewIdxAndDataFilenames;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -11,13 +16,15 @@ import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.kochudb.io.FileIO;
+import com.kochudb.types.ByteArray;
+import com.kochudb.types.KeyValuePair;
+
 
 public class SSTSegment {
 
@@ -29,7 +36,7 @@ public class SSTSegment {
 	public SSTSegment(int level) {
 		this.level = level;
 		
-		String[] filenames = FileIO.createNewIdxAndDataFilenames(this.level);
+		String[] filenames = createNewIdxAndDataFilenames(this.level);
 		this.indexFilePath = filenames[0];
 		this.datafilePath = filenames[1];
 	}
@@ -89,8 +96,8 @@ public class SSTSegment {
 		Map<ByteArray, Long> updatedIdxMap = new HashMap<>();
 		Map<File, RandomAccessFile> openedFiles = new HashMap<>();
 
-		openedFiles.put(file1, FileIO.createDatFromIdx(file1.getAbsolutePath()));
-		openedFiles.put(file2, FileIO.createDatFromIdx(file2.getAbsolutePath()));
+		openedFiles.put(file1, createDatFromIdx(file1.getAbsolutePath()));
+		openedFiles.put(file2, createDatFromIdx(file2.getAbsolutePath()));
 
 		try (RandomAccessFile newDataFile = new RandomAccessFile(datafilePath, "rw")) {
 
@@ -148,7 +155,7 @@ public class SSTSegment {
                 byte[] keyBytes = entry.getKey().serialize();
                 Long value = entry.getValue();
 
-                byte[] offsetBytes = FileIO.longToBytes(value);
+                byte[] offsetBytes = longToBytes(value);
                 byte[] recWithSize = new byte[keyBytes.length + KEY.length + Long.BYTES];
 
                 recWithSize[0] = (byte) keyBytes.length;
@@ -205,7 +212,7 @@ public class SSTSegment {
                 // offset where the value resides
                 byte[] nextEightBytes = new byte[Long.BYTES];
                 raf.read(nextEightBytes, 0, Long.BYTES);
-                long offset = FileIO.bytesToLong(nextEightBytes);
+                long offset = bytesToLong(nextEightBytes);
 
                 keyToOffset.put(new ByteArray(key), offset);
             }
@@ -235,13 +242,13 @@ public class SSTSegment {
 	public KeyValuePair readKVPair(String dataFilename, Long offset) throws IOException {
         RandomAccessFile raf = new RandomAccessFile(dataFilename, "r");
 
-        int keyLen = FileIO.bytesToInt(readBytes(raf, offset, KEY.length));
+        int keyLen = bytesToInt(readBytes(raf, offset, KEY.length));
         offset += KEY.length;
         
         byte[] keyData = readBytes(raf, offset, keyLen);
         offset += keyLen;
         
-        int valLen = FileIO.bytesToInt(readBytes(raf, offset, VALUE.length));
+        int valLen = bytesToInt(readBytes(raf, offset, VALUE.length));
         offset += VALUE.length;
         
         byte[] valueData = readBytes(raf, offset, valLen);
@@ -264,14 +271,14 @@ public class SSTSegment {
         byte[] keyHeader = readBytes(raf, offset, KEY.length);
         offset += KEY.length;
         
-        int keyLen = FileIO.bytesToInt(keyHeader);
+        int keyLen = bytesToInt(keyHeader);
         byte[] key = readBytes(raf, offset, keyLen);
         offset += keyLen;
 
         byte[] valHeader = readBytes(raf, offset, VALUE.length);
         offset += VALUE.length;
         
-        int valLen = FileIO.bytesToInt(valHeader);
+        int valLen = bytesToInt(valHeader);
         byte[] val = readBytes(raf, offset, valLen);
         
         byte[] obj = new byte[KEY.length + VALUE.length + keyLen + valLen];

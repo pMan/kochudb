@@ -13,8 +13,8 @@ import org.apache.logging.log4j.Logger;
 
 import com.kochudb.shared.Request;
 import com.kochudb.shared.Response;
+import com.kochudb.storage.LSMTree;
 import com.kochudb.types.ByteArray;
-import com.kochudb.types.LSMTree;
 
 public class KochuDBServer extends Thread {
 

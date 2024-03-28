@@ -1,4 +1,4 @@
-package com.kochudb.types;
+package com.kochudb.storage;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,6 +19,7 @@ import com.kochudb.k.K;
 import com.kochudb.server.KVStorage;
 import com.kochudb.tasks.LevelCompactor;
 import com.kochudb.tasks.MemTableFlusher;
+import com.kochudb.types.ByteArray;
 
 /**
  * LSM Tree implementing basic operation on data store

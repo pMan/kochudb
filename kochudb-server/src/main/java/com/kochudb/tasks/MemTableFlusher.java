@@ -8,9 +8,9 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.kochudb.storage.SSTSegment;
+import com.kochudb.storage.SkipList;
 import com.kochudb.types.ByteArray;
-import com.kochudb.types.SSTSegment;
-import com.kochudb.types.SkipList;
 
 public class MemTableFlusher implements Runnable {
 

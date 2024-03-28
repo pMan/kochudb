@@ -12,6 +12,9 @@ import java.util.Iterator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.kochudb.storage.SkipList;
+import com.kochudb.storage.SkipListNode;
+
 class SkipListTest {
 
     private SkipList skipListUnderTest;
@@ -29,8 +32,8 @@ class SkipListTest {
         // Run the test
         final SkipListNode result = skipListUnderTest.find(key);
 
-        assertNull(result.key);
-        assertNull(result.val);
+        assertNull(result.getKey());
+        assertNull(result.getValue());
 
         assertNotNull(result);
     }
@@ -84,68 +87,7 @@ class SkipListTest {
         assertTrue(result);
         assertFalse(neg);
     }
-
-    @Test
-    void testUnlinkSkipListNode() {
-        // Setup
-        final SkipListNode node = new SkipListNode(new ByteArray("t"), new ByteArray("content".getBytes()));
-
-        final SkipListNode head = new SkipListNode(null, null);
-        final SkipListNode tail = new SkipListNode(null, null);
-        head.right = node;
-        node.left = head;
-        node.right = tail;
-        tail.left = node;
-
-        // Run the test
-        skipListUnderTest.unlinkSkipListNode(node);
-
-        // Verify the results
-        assertEquals(skipListUnderTest.head.right, skipListUnderTest.tail);
-    }
-
-    @Test
-    void testAddNewLayer() {
-        // Setup
-        // Run the test
-        skipListUnderTest.addNewLayer();
-
-        // Verify the results
-        assertEquals(skipListUnderTest.head.right, skipListUnderTest.tail);
-    }
-
-    @Test
-    void testAddNewSkipListNodeToTower() {
-        // Setup
-        final SkipListNode p = new SkipListNode(new ByteArray("t"), new ByteArray("content".getBytes()));
-        final SkipListNode q = new SkipListNode(new ByteArray("t"), new ByteArray("content".getBytes()));
-        final SkipListNode dummy = new SkipListNode(new ByteArray("t"), null);
-        final SkipListNode tail = new SkipListNode(null, null);
-        p.right = tail;
-
-        // Run the test
-        final SkipListNode result = skipListUnderTest.addNewSkipListNodeToTower(p, q);
-
-        // Verify the results
-        assertEquals(q.getKey(), q.up.getKey());
-        assertEquals(p.right, q.up);
-    }
-
-    @Test
-    void testInsertRight() {
-        // Setup
-        final SkipListNode p = new SkipListNode(new ByteArray("t"), new ByteArray("content".getBytes()));
-        final SkipListNode q = new SkipListNode(new ByteArray("t"), new ByteArray("content".getBytes()));
-
-        final SkipListNode tail = new SkipListNode(null, null);
-        p.right = tail;
-
-        // Run the test
-        skipListUnderTest.insertRight(p, q);
-
-        // Verify the results
-    }
-
+    
     @Test
     void testIterator() {
         // Setup

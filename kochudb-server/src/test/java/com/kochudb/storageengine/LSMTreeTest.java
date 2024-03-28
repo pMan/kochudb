@@ -11,8 +11,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import com.kochudb.storage.LSMTree;
 import com.kochudb.types.ByteArray;
-import com.kochudb.types.LSMTree;
 
 class LSMTreeTest {
 

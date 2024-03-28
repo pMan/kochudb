@@ -1,7 +1,9 @@
-package com.kochudb.types;
+package com.kochudb.storage;
 
 import java.util.Iterator;
 import java.util.Random;
+
+import com.kochudb.types.ByteArray;
 
 /**
  * SkipList is a probabilistic list that offers average O(log n) runtime
@@ -137,7 +139,7 @@ public class SkipList {
      *
      * @param node skipListNode
      */
-    void unlinkSkipListNode(SkipListNode node) {
+    private void unlinkSkipListNode(SkipListNode node) {
         node.left.right = node.right;
         node.right.left = node.left;
 
@@ -149,7 +151,7 @@ public class SkipList {
     /**
      * add a new layer to the top
      */
-    void addNewLayer() {
+    private void addNewLayer() {
         SkipListNode h = new SkipListNode(null, null);
         SkipListNode t = new SkipListNode(null, null);
 
@@ -173,7 +175,7 @@ public class SkipList {
      * @param q SkipListNode
      * @return SkipListNode
      */
-    SkipListNode addNewSkipListNodeToTower(SkipListNode p, SkipListNode q) {
+    private SkipListNode addNewSkipListNodeToTower(SkipListNode p, SkipListNode q) {
         SkipListNode dummy = new SkipListNode(q.key, null);
 
         dummy.left = p;
@@ -193,7 +195,7 @@ public class SkipList {
      * @param p SkipListNode
      * @param q SkipListNode
      */
-    void insertRight(SkipListNode p, SkipListNode q) {
+    private void insertRight(SkipListNode p, SkipListNode q) {
         p.right.left = q;
         q.right = p.right;
 

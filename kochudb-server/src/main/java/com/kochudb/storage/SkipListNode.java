@@ -1,4 +1,6 @@
-package com.kochudb.types;
+package com.kochudb.storage;
+
+import com.kochudb.types.ByteArray;
 
 /**
  * Skip list Element

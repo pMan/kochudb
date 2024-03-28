@@ -1,4 +1,4 @@
-package com.kochudb.types;
+package com.kochudb.storage;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,8 +12,10 @@ import javax.swing.text.Segment;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.kochudb.io.FileIO;
 import com.kochudb.k.K;
+import com.kochudb.types.ByteArray;
+import com.kochudb.types.KeyValuePair;
+import com.kochudb.utils.FileUtil;
 
 /**
  * MemTable and SSTable operations
@@ -54,7 +56,7 @@ public class SSTable {
         int level = 0;
         
         // sorted newest first
-        File[] indexFiles = FileIO.findFiles(basePath, level);
+        File[] indexFiles = FileUtil.findFiles(basePath, level);
         
         while (indexFiles.length > 0 || level <= K.NUM_LEVELS) {
             logger.debug("Searching key in level {}", level);
@@ -79,7 +81,7 @@ public class SSTable {
                 }
             }
             level++;
-            indexFiles = FileIO.findFiles(basePath, level);
+            indexFiles = FileUtil.findFiles(basePath, level);
         }
         logger.debug("Key not found");
         return new ByteArray();

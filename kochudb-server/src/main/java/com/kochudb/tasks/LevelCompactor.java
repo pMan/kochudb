@@ -16,9 +16,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.kochudb.io.FileIO;
-import com.kochudb.types.SSTable;
-import com.kochudb.types.SSTSegment;
+import com.kochudb.storage.SSTSegment;
+import com.kochudb.storage.SSTable;
+import com.kochudb.utils.FileUtil;
 
 public class LevelCompactor implements Runnable {
 
@@ -65,7 +65,6 @@ public class LevelCompactor implements Runnable {
 		}
 
 		logger.trace("Compaction thread started");
-
 		compactLevel(0);
 
 		if (isRunning.getAndSet(false))
@@ -94,7 +93,7 @@ public class LevelCompactor implements Runnable {
 	 * @param level current level
 	 */
 	void compactLevel(int level) {
-		File[] files = FileIO.findFiles(dataDirectory, level);
+		File[] files = FileUtil.findFiles(dataDirectory, level);
 
 		if (shouldStartCompactionNow(files, level)) {
 			logger.debug("Compaction started. current level: {}, number of files in level: {}", level, files.length);
@@ -103,7 +102,7 @@ public class LevelCompactor implements Runnable {
 
 			logger.trace("New compacted file created in level {}: {}", level, bigTmpIdxFile);
 
-			FileIO.renameIndexFile(bigTmpIdxFile);
+			FileUtil.renameIndexFile(bigTmpIdxFile);
 
 			// all files from cur level are compacted and moved to next level
 			// delete all files marked for deletion

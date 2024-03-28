@@ -7,6 +7,8 @@ import java.io.File;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.kochudb.storage.SSTable;
+
 class SSTableTest {
 
     private SSTable ssTableUnderTest;
