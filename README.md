@@ -2,9 +2,9 @@
 [![Maven Build](https://github.com/pMan/kochudb/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/pMan/kochudb/actions/workflows/build.yml)
 
 # kochudb
-KochuDB is LSMTree based level-compacted single-threaded key-value store.
+KochuDB is an LSMTree-based level-compacted thread-safe key-value store.
 
-Read more about KochuDB on [Medium](https://medium.com/@pracho/building-an-lsm-tree-based-data-store-in-java-part-1-d46adab464ab)
+Read more about KochuDB on (outdated) [Medium](https://medium.com/@pracho/building-an-lsm-tree-based-data-store-in-java-part-1-d46adab464ab) posts.
 
 ```
 :::::::::::::::::::::::::::::::::::::::::::::::::::
