@@ -9,7 +9,9 @@ public class SkipListNode {
     
     // key/value of type ByteArray
     ByteArray key, val;
-
+    
+    public boolean deleted;
+    
     // references to all four neighbors
     public SkipListNode left, right, up, down;
 
@@ -27,6 +29,7 @@ public class SkipListNode {
         right = null;
         up = null;
         down = null;
+        deleted = false;
     }
     
     public ByteArray getKey() {
@@ -36,6 +39,22 @@ public class SkipListNode {
     public ByteArray getValue() {
         return val;
     }
+    
+    public void setValue(ByteArray val) {
+        this.val = val;
+    }
+    
+    public void delete() {
+		deleted = true;
+	}
+    
+    public void undelete() {
+		deleted = false;
+	}
+    
+    public boolean isDeleted() {
+		return deleted;
+	}
     
     @Override
     public String toString() {

@@ -7,8 +7,6 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import javax.swing.text.Segment;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -71,7 +69,7 @@ public class SSTable {
                     Map<ByteArray, Long> curIndex = segment.parseIndexFile(absFilePath);
 
                     if (curIndex.containsKey(key)) {
-                        KeyValuePair record = segment.readKVPair(absFilePath.replace(".idx", ".dat"), curIndex.get(key));
+                        KeyValuePair record = segment.readKVPair(absFilePath.replace(".idx", K.DATA_FILE_EXT), curIndex.get(key));
                         return record.val();
                     }
                 } catch (IOException e) {

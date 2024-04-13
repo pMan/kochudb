@@ -1,7 +1,13 @@
 package com.kochudb.storage;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
 import com.kochudb.types.ByteArray;
 
@@ -11,30 +17,36 @@ import com.kochudb.types.ByteArray;
  */
 public class SkipList {
 
-    // initial nodes, sentinel references head
-    SkipListNode head, tail, sentinel;
+	private AtomicInteger maxLevels;
+	private int curLevel, length;
 
-    // number of levels, and length of SkipList
-    int levels, length;
+	private SkipListNode sentinel, head, tail;
 
-    // probability function
-    Random prob;
-
-    /**
+	private final WriteLock writeLock;
+	private final ReadLock readLock;
+	private Random prob;
+    
+	/**
      * Constructor
      */
     public SkipList() {
-        head = new SkipListNode(null, null);
-        tail = new SkipListNode(null, null);
+		head = new SkipListNode(null, null);
+		tail = new SkipListNode(null, null);
 
-        head.right = tail;
-        tail.left = head;
+		head.right = tail;
+		tail.left = head;
 
-        levels = 0;
-        length = 0;
-        prob = new Random();
+		sentinel = head;
 
-        sentinel = head;
+		maxLevels = new AtomicInteger(0);
+		curLevel = 0;
+
+		prob = new Random();
+		length = 0;
+
+		ReentrantReadWriteLock reentrantReadWriteLock = new ReentrantReadWriteLock();
+		readLock = reentrantReadWriteLock.readLock();
+		writeLock = reentrantReadWriteLock.writeLock();
     }
 
     /**
@@ -45,19 +57,19 @@ public class SkipList {
      * @return a SkipListNode with the 'key' of floor(key)
      */
     public SkipListNode find(ByteArray key) {
-        SkipListNode cur = head;
+    	SkipListNode cur = head;
 
-        while (true) {
-            while (cur.right.key != null && cur.right.key.compareTo(key) <= 0)
-                cur = cur.right;
+		while (true) {
+			while (cur.right.key != null && cur.right.key.compareTo(key) <= 0)
+				cur = cur.right;
 
-            if (cur.down == null)
-                break;
+			if (cur.down == null)
+				break;
 
-            cur = cur.down;
-        }
-        return cur;
-    }
+			cur = cur.down;
+		}
+		return cur;
+	}
 
     /**
      * find a SkipListNode with input key as key and return it. If not present, return null;
@@ -66,13 +78,20 @@ public class SkipList {
      * @return a SkipListNode or null
      */
     public SkipListNode get(ByteArray key) {
-        SkipListNode found = find(key);
-
-        if (found.key != null && found.key.compareTo(key) == 0)
-            return found;
-
-        return null;
-    }
+		readLock.lock();
+		try {
+			SkipListNode found = find(key);
+			
+			if (found.key == null)
+				return null;
+			
+			if (found.key.compareTo(key) == 0 && !found.isDeleted())
+				return found;
+		} finally {
+			readLock.unlock();
+		}
+		return null;
+	}
 
     public boolean containsKey(ByteArray key) {
         SkipListNode node = find(key);
@@ -87,33 +106,56 @@ public class SkipList {
      * @param val value
      */
     public void put(ByteArray key, ByteArray val) {
-        SkipListNode found = find(key);
-        if (found.key != null && found.key.compareTo(key) == 0) {
-            found.val = val;
-            return;
-        }
+    	SkipListNode found = null, cur = null;
 
-        SkipListNode cur = new SkipListNode(key, val);
+		writeLock.lock();
+		try {
+			found = find(key);
 
-        insertRight(found, cur);
+			if (found.key != null && found.key.compareTo(key) == 0) {
+				found.setValue(val);
+				writeLock.unlock();
+				return;
+			}
 
-        // update tower
-        int curLevel = 0;
+			cur = new SkipListNode(key, val);
+			insertRight(found, cur);
+		} finally {
+			if (writeLock.isHeldByCurrentThread())
+				writeLock.unlock();
+		}
 
-        while (prob.nextDouble() < 0.5) {
-            if (curLevel == levels)
-                addNewLayer();
+		curLevel = 0;
+		while (prob.nextDouble() < 0.5) {
+			if (curLevel >= maxLevels.get()) {
+				addNewLayer();
+				maxLevels.getAndIncrement();
+			}
 
-            while (found.up == null)
-                found = found.left;
+			while (found.up == null && found.left != null) {
+				found = found.left;
+			}
 
-            found = found.up;
+			try {
+				if (found.up != null) {
+					found = found.up;
+					cur = addNewNodeToTower(found, cur);
+					curLevel++;
+				}
+			} catch (Exception e) {
+				System.out.println(Thread.currentThread().getName() + " exception");
+				System.out.println(Thread.currentThread().getName() + " key: " + key);
+				System.out.println(
+						Thread.currentThread().getName() + " curLevel: " + curLevel + ", levels: " + maxLevels.get());
+				System.out.println(Thread.currentThread().getName() + "\n" + this.toString());
+				e.printStackTrace();
+				System.out.println(Thread.currentThread().getName() + " key: " + found.key);
+				// System.exit(1);
+			}
+		}
 
-            cur = addNewSkipListNodeToTower(found, cur);
-            curLevel++;
-        }
-        length++;
-    }
+		length++;
+	}
 
     /**
      * delete the SkipListNode identified by the key
@@ -122,31 +164,22 @@ public class SkipList {
      * @return true if a SkipListNode was removed, false if SkipListNode was not found
      */
     public boolean del(ByteArray key) {
-        SkipListNode found = find(key);
-        if (found.key != null && found.key.compareTo(key) == 0) {
-            while (found != null) {
-                unlinkSkipListNode(found);
-                found = found.up;
-            }
-            length--;
-            return true;
-        }
-        return false;
-    }
+		SkipListNode found = find(key);
+		if (found.key != null && found.key.compareTo(key) == 0) {
+			found.delete();
+			length--;
+			return true;
+		}
+		return false;
+	}
 
-    /**
-     * remove left, right, down references
-     *
-     * @param node skipListNode
-     */
-    private void unlinkSkipListNode(SkipListNode node) {
-        node.left.right = node.right;
-        node.right.left = node.left;
-
-        node.left = null;
-        node.right = null;
-        node.down = null;
-    }
+	/**
+	 * length of the list
+	 * @return
+	 */
+	public int length() {
+		return length;
+	}
 
     /**
      * add a new layer to the top
@@ -165,7 +198,6 @@ public class SkipList {
 
         head = h;
         tail = t;
-        levels++;
     }
 
     /**
@@ -175,7 +207,7 @@ public class SkipList {
      * @param q SkipListNode
      * @return SkipListNode
      */
-    private SkipListNode addNewSkipListNodeToTower(SkipListNode p, SkipListNode q) {
+    private SkipListNode addNewNodeToTower(SkipListNode p, SkipListNode q) {
         SkipListNode dummy = new SkipListNode(q.key, null);
 
         dummy.left = p;
@@ -229,7 +261,13 @@ public class SkipList {
 
             @Override
             public boolean hasNext() {
-                return currentNode.right.key != null;
+            	while (currentNode.right != null && currentNode.right.key != null) {
+            		if (!currentNode.right.isDeleted())
+    					return true;
+            		
+            		currentNode = currentNode.right;
+            	}
+                return false;
             }
         }.init();
     }
@@ -239,35 +277,40 @@ public class SkipList {
      */
     @Override
     public String toString() {
-        String[][] rows = new String[levels + 1][length + 2];
-        SkipListNode k = head;
-        while (k.down != null)
-            k = k.down;
+		List<List<String>> rows = new ArrayList<>();
+		SkipListNode curNode = sentinel, temp = curNode;
+		int col = 0, curLvl = 0;
 
-        int col = 0, curLvl = 0;
-        SkipListNode temp = k;
+		while (temp != null && curLvl <= maxLevels.get()) {
+			while (curLvl <= maxLevels.get()) {
+				rows.add(new ArrayList<String>());
+				String val = "";
+				if (temp != null) {
+					val = col == 0 ? "head"
+							: (temp.right == null) ? "tail"
+									: temp.isDeleted() ? "[" + temp.key.toString() + "]" : temp.key.toString();
+					temp = temp.up;
+				}
+				rows.get(curLvl++).add(val);
+			}
 
-        while (temp != null) {
-            while (temp != null) {
-                String val = col == 0 ? "head" : (col == length + 1) ? "tail" : temp.key.toString();
-                rows[curLvl++][col] = val;
-                temp = temp.up;
-            }
-            col++;
-            curLvl = 0;
-            k = k.right;
-            temp = k;
-        }
+			col++;
+			curLvl = 0;
+			curNode = curNode.right;
+			temp = curNode;
+		}
 
-        StringBuilder builder = new StringBuilder();
-        for (int r = rows.length - 1; r >= 0; r--) {
-            String[] row = rows[r];
-            for (String key : row)
-                builder.append(String.format("%4.4s ", key == null ? "" : key));
+		StringBuilder builder = new StringBuilder("\n");
+		for (int r = rows.size() - 1; r >= 0; r--) {
+			StringBuilder line = new StringBuilder();
 
-            builder.append("\n");
-        }
+			for (String key : rows.get(r))
+				line.append(String.format("%4.4s ", key == null ? "" : key));
 
-        return builder.toString();
-    }
+			if (!"".equals(line.toString().trim()))
+				builder.append(line.append("\n"));
+		}
+
+		return builder.toString();
+	}
 }

@@ -1,5 +1,6 @@
 package com.kochudb.tasks;
 
+import static com.kochudb.k.K.DATA_FILE_EXT;
 import static com.kochudb.k.K.ERR_NO_DATA_DIR;
 import static com.kochudb.k.K.LEVEL_MAX_FILES_MULTIPLIER;
 import static com.kochudb.k.K.LEVEL_MAX_SIZE_MULTIPLIER;
@@ -158,7 +159,7 @@ public class LevelCompactor implements Runnable {
 	 */
 	private void deleteOutdatedFiles() {
 		for (File file : SSTable.markedForDeletion) {
-			String dataFilename = file.getAbsolutePath().replaceFirst(".(idx|idxtmp)$", ".dat");
+			String dataFilename = file.getAbsolutePath().replaceFirst(".(idx|idxtmp)$", DATA_FILE_EXT);
 			File datafile = new File(dataFilename);
 
 			logger.debug(file.delete() ? "File deleted: {}" : "Failed to delete file: {}", file.getAbsolutePath());

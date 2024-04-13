@@ -99,6 +99,6 @@ class SkipListTest {
 
     @Test
     void testToString() {
-        assertEquals("head tail \n", skipListUnderTest.toString());
+        assertEquals("\nhead tail \n", skipListUnderTest.toString());
     }
 }
