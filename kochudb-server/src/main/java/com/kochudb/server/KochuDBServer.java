@@ -2,18 +2,19 @@ package com.kochudb.server;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.lang.invoke.MethodHandles;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.kochudb.shared.Request;
-import com.kochudb.shared.Response;
 import com.kochudb.storage.LSMTree;
+import com.kochudb.tasks.Querier;
 import com.kochudb.types.ByteArray;
 
 public class KochuDBServer extends Thread {
@@ -28,7 +29,7 @@ public class KochuDBServer extends Thread {
 
     private static int port = 2222;
     
-    //public static Properties prop;
+    ExecutorService executor;
     
     public KochuDBServer(Properties context) throws IOException {
         setName("front-end");
@@ -37,6 +38,8 @@ public class KochuDBServer extends Thread {
         
         serverSocket = new ServerSocket(port);
         storageEngine = new LSMTree(context);
+        executor = Executors.newFixedThreadPool(25);
+        
         alive = true;
     }
 
@@ -50,43 +53,20 @@ public class KochuDBServer extends Thread {
 		while (alive) {
 			try {
 				Socket socket = serverSocket.accept();
-
 				ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
 				Request req = (Request) ois.readObject();
 
-				try {
-					byte[] response = switch (req.getCommand()) {
-					case "get" -> storageEngine.get(new ByteArray(req.getKey())).serialize();
-					case "set" -> storageEngine.set(new ByteArray(req.getKey()), new ByteArray(req.getValue()));
-					case "del" -> storageEngine.del(new ByteArray(req.getKey()));
-					default -> "Invalid Operation".getBytes();
-					};
-
-					ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-					Response resp = new Response(req);
-					resp.setData(new String(response, "utf-8"));
-					oos.writeObject(resp);
-				} catch (IOException e) {
-					logger.error(e.getMessage());
-					e.printStackTrace();
-
-					try {
-						ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-						Response resp = new Response(req);
-						resp.setData("Some error occurred. " + e.getMessage());
-						oos.writeObject(resp);
-					} catch (IOException e1) {
-						e1.printStackTrace();
-					}
-				}
+				executor.submit(new Querier(socket, req, storageEngine));
+				
 			} catch (ClassNotFoundException | IOException e) {
 				if (!alive)
 					logger.info("Server shut down gracefully");
 				else
-					System.out.println("Server stopped accepting requests");
+					System.out.println("Server crashed");
 				break;
 			}
 		}
+		System.out.println("Server shut down");
     }
 
     // SIGINT+

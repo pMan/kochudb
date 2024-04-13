@@ -189,15 +189,16 @@ public class SkipList {
         SkipListNode t = new SkipListNode(null, null);
 
         h.right = t;
-        h.down = head;
-        head.up = h;
-
         t.left = h;
-        t.down = tail;
-        tail.up = t;
+        
+        h.down = this.head;
+        t.down = this.tail;
+        
+        this.head.up = h;
+        this.tail.up = t;
 
-        head = h;
-        tail = t;
+        this.head = h;
+        this.tail = t;
     }
 
     /**
