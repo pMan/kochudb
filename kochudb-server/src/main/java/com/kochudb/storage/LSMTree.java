@@ -1,5 +1,8 @@
 package com.kochudb.storage;
 
+import static com.kochudb.k.K.LEVEL_ZERO_FILE_MAX_SIZE_KB;
+import static com.kochudb.k.K.VALUE_MAX_SIZE;
+
 import java.io.File;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
@@ -15,7 +18,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.kochudb.k.K;
 import com.kochudb.server.KVStorage;
 import com.kochudb.tasks.LevelCompactor;
 import com.kochudb.tasks.MemTableFlusher;
@@ -47,7 +49,7 @@ public class LSMTree implements KVStorage<ByteArray, ByteArray> {
      * Size in bytes
      * Threshold for triggering flushing of currently active skiplist
      */
-    Integer maxSkipListSize = K.LEVEL_ZERO_FILE_MAX_SIZE_KB * 1024; // 4 kb
+    Integer maxSkipListSize = LEVEL_ZERO_FILE_MAX_SIZE_KB * 1024; // 4 kb
 
     Integer curSkipListSize;
 
@@ -130,26 +132,32 @@ public class LSMTree implements KVStorage<ByteArray, ByteArray> {
      * is restricted to 4MB
      */
     @Override
-    public byte[] set(ByteArray key, ByteArray val) {
-        // start memTable flusher thread
-        if (curSkipListSize >= maxSkipListSize) {
-            memTableQueue.add(memTable);
-            memTable = new SkipList();
-            memTableExecutor.submit(new MemTableFlusher(memTableQueue));
-            curSkipListSize = 0;
-        }
+	public byte[] set(ByteArray key, ByteArray val) {
+		if (curSkipListSize >= maxSkipListSize) {
+			memTable.writeLock.lock();
+			
+			try {
+				memTableQueue.add(memTable);
+				memTable = new SkipList();
+			} finally {
+				memTableQueue.peekLast().writeLock.unlock();
+			}
+			
+			memTableExecutor.submit(new MemTableFlusher(memTableQueue));
+			curSkipListSize = 0;
+		}
 
-        if (key.length() > 255)
-            return "Error: Key too long. Max allowed size is 256".getBytes();
+		if (key.length() > 255)
+			return "Error: Key too long. Max allowed size is 256".getBytes();
 
-        if (val.length() > K.VALUE_MAX_SIZE)
-            return "Error: Value too long. Max allowed size is 4MB".getBytes();
+		if (val.length() > VALUE_MAX_SIZE)
+			return "Error: Value too long. Max allowed size is 4MB".getBytes();
 
-        memTable.put(key, val);
-        curSkipListSize += key.length() + val.length();
+		memTable.put(key, val);
+		curSkipListSize += key.length() + val.length();
 
-        return "ok".getBytes();
-    }
+		return "ok".getBytes();
+	}
 
     /**
      * Delete key from data store

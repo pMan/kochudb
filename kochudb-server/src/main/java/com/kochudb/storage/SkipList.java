@@ -22,8 +22,8 @@ public class SkipList {
 
 	private SkipListNode sentinel, head, tail;
 
-	private final WriteLock writeLock;
-	private final ReadLock readLock;
+	public final WriteLock writeLock;
+	public final ReadLock readLock;
 	private Random prob;
     
 	/**
@@ -95,7 +95,7 @@ public class SkipList {
 
     public boolean containsKey(ByteArray key) {
         SkipListNode node = find(key);
-        return node.key != null && node.key.compareTo(key) == 0;
+        return node.key != null && node.key.compareTo(key) == 0 && ! node.isDeleted();
     }
 
     /**
