@@ -1,5 +1,6 @@
 package com.kochudb.tasks;
 
+import static com.kochudb.k.K.DATA_FILE_EXT;
 import static com.kochudb.k.K.ERR_NO_DATA_DIR;
 import static com.kochudb.k.K.LEVEL_MAX_FILES_MULTIPLIER;
 import static com.kochudb.k.K.LEVEL_MAX_SIZE_MULTIPLIER;
@@ -9,21 +10,16 @@ import static com.kochudb.k.K.NUM_LEVELS;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.lang.invoke.MethodHandles;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.kochudb.io.FileIO;
-import com.kochudb.types.ByteArrayKey;
-import com.kochudb.types.SSTable;
+import com.kochudb.storage.SSTSegment;
+import com.kochudb.storage.SSTable;
+import com.kochudb.utils.FileUtil;
 
 public class LevelCompactor implements Runnable {
 
@@ -70,7 +66,6 @@ public class LevelCompactor implements Runnable {
 		}
 
 		logger.trace("Compaction thread started");
-
 		compactLevel(0);
 
 		if (isRunning.getAndSet(false))
@@ -99,7 +94,7 @@ public class LevelCompactor implements Runnable {
 	 * @param level current level
 	 */
 	void compactLevel(int level) {
-		File[] files = FileIO.findFiles(dataDirectory, level);
+		File[] files = FileUtil.findFiles(dataDirectory, level);
 
 		if (shouldStartCompactionNow(files, level)) {
 			logger.debug("Compaction started. current level: {}, number of files in level: {}", level, files.length);
@@ -108,7 +103,7 @@ public class LevelCompactor implements Runnable {
 
 			logger.trace("New compacted file created in level {}: {}", level, bigTmpIdxFile);
 
-			FileIO.renameIndexFile(bigTmpIdxFile);
+			FileUtil.renameIndexFile(bigTmpIdxFile);
 
 			// all files from cur level are compacted and moved to next level
 			// delete all files marked for deletion
@@ -132,7 +127,6 @@ public class LevelCompactor implements Runnable {
 	 * @return absolute name of merged file
 	 */
 	private String compactFiles(int curLevel, File[] files, int start, int end) {
-
 		if (start == end)
 			return files[start].getAbsolutePath();
 
@@ -156,82 +150,16 @@ public class LevelCompactor implements Runnable {
 	 * @return absolute name of merged file
 	 */
 	private String mergeTwoFiles(File file1, File file2, int curLevel) {
-
-		Map<ByteArrayKey, Object[]> mergedMap = new TreeMap<>();
-
-		// order of files is important. file1 was created earlier than file2
-		for (File file : new File[] { file1, file2 }) {
-			Map<ByteArrayKey, Long> indexMap;
-			try {
-				indexMap = FileIO.readIndexFile(file.getCanonicalPath());
-				for (Map.Entry<ByteArrayKey, Long> entry : indexMap.entrySet()) {
-					mergedMap.put(entry.getKey(), new Object[] { entry.getValue(), file });
-				}
-			} catch (IOException e) {
-				logger.warn("Invalid file path {}", file.getPath());
-				e.printStackTrace();
-			}
-		}
-
-		logger.debug("Merged index files {}, {}", file1.getName(), file2.getName());
-
-		String[] filenames = FileIO.createNewIdxAndDataFilenames(curLevel + 1);
-		String newIdxFilename = filenames[0].replaceFirst(".idx$", ".idxtmp");
-		String newDatFilename = filenames[1];
-		logger.debug("New Temp file name: {}", newIdxFilename);
-
-		Map<ByteArrayKey, Long> updatedIdxMap = new HashMap<>();
-		Map<File, RandomAccessFile> openedFiles = new HashMap<>();
-
-		openedFiles.put(file1, FileIO.createDatFromIdx(file1.getAbsolutePath()));
-		openedFiles.put(file2, FileIO.createDatFromIdx(file2.getAbsolutePath()));
-
-		try (RandomAccessFile newDataFile = new RandomAccessFile(newDatFilename, "rw")) {
-
-			for (Entry<ByteArrayKey, Object[]> entry : mergedMap.entrySet()) {
-				File file = (File) entry.getValue()[1];
-				Long offset = (Long) entry.getValue()[0];
-
-				byte[] serializedKVPair = FileIO.readKVPairBytes(openedFiles.get(file), offset);
-				Long newOffset = FileIO.appendData(newDataFile, serializedKVPair);
-
-				updatedIdxMap.put(entry.getKey(), newOffset);
-				// f.setLastModified(Instant.now().getEpochSecond() * 1000);
-			}
-			newDataFile.getFD().sync();
-
-			for (RandomAccessFile file : openedFiles.values())
-				file.close();
-
-			if (!updatedIdxMap.isEmpty())
-				FileIO.writeIndexFile(newIdxFilename, updatedIdxMap);
-
-			logger.debug("New data file created: {}", newDatFilename);
-			logger.debug("New index file created: {}", newIdxFilename);
-
-			SSTable.markedForDeletion.add(file1);
-			SSTable.markedForDeletion.add(file2);
-
-			return newIdxFilename;
-		} catch (IOException e) {
-			logger.warn("Compaction failed: {}", e.getMessage());
-			e.printStackTrace();
-		} finally {
-			for (RandomAccessFile file: openedFiles.values()) {
-				try { file.close(); } catch (IOException e) { }
-			}
-		}
-		return null;
+		SSTSegment sstSegment = new SSTSegment(curLevel + 1);
+		return sstSegment.mergeTwoFiles(file1, file2);
 	}
 
 	/**
 	 * files that are compacted into bigger files are periodically deleted
 	 */
 	private void deleteOutdatedFiles() {
-
 		for (File file : SSTable.markedForDeletion) {
-
-			String dataFilename = file.getAbsolutePath().replaceFirst(".(idx|idxtmp)$", ".dat");
+			String dataFilename = file.getAbsolutePath().replaceFirst(".(idx|idxtmp)$", DATA_FILE_EXT);
 			File datafile = new File(dataFilename);
 
 			logger.debug(file.delete() ? "File deleted: {}" : "Failed to delete file: {}", file.getAbsolutePath());

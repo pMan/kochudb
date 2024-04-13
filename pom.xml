@@ -11,6 +11,7 @@
   <description>A tiny key-value store</description>
   
   <modules>
+	  <module>kochudb-commons</module>
 	  <module>kochudb-server</module>
 	  <module>cli-client</module>
   </modules>

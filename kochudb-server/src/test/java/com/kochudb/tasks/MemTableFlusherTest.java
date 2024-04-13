@@ -1,8 +1,9 @@
 package com.kochudb.tasks;
 
-import com.kochudb.types.SkipList;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import com.kochudb.storage.SkipList;
 
 import java.util.LinkedList;
 import java.util.List;

@@ -4,11 +4,11 @@ public final class K {
     
     // tree
     public static final int DEFAULT_MEMTABLE_MAX_SIZE = 2;
-    public static final int VALUE_MAX_SIZE = (1 << 20) * 4; // value of a key to set
+    public static final int VALUE_MAX_SIZE = (1 << 20) * 4;
     
     // file
     public static final String INDEX_FILE_EXT = ".idx";
-    public static final String DATA_FILE_EXT = ".dat";
+    public static final String DATA_FILE_EXT = ".kdb";
     public static final String L0_INDEX_FILE_PATTERN = "^[0-9]+\\.[0-9]+\\.idx$";
     public static final String L0_DATA_FILE_PATTERN = "^[0-9]+\\.[0-9]+\\.dat$";
     

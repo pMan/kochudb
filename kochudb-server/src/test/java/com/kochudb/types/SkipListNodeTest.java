@@ -11,6 +11,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
+import com.kochudb.storage.SkipListNode;
+
 @TestInstance(Lifecycle.PER_CLASS)
 class SkipListNodeTest {
 
@@ -18,7 +20,7 @@ class SkipListNodeTest {
     
     @BeforeAll
     public void setUpBeforeAll() {
-        node = new SkipListNode(new ByteArrayKey("Key".getBytes()), new ByteArray("Value".getBytes()));
+        node = new SkipListNode(new ByteArray("Key".getBytes()), new ByteArray("Value".getBytes()));
         node.right = new SkipListNode(null, null);
     }
 
@@ -28,7 +30,7 @@ class SkipListNodeTest {
     @Test
     void test() {
         
-        assertTrue(new ByteArrayKey("Key".getBytes()).compareTo(node.getKey()) == 0);
+        assertTrue(new ByteArray("Key".getBytes()).compareTo(node.getKey()) == 0);
         
         assertArrayEquals("Value".getBytes(), node.getValue().serialize());
         

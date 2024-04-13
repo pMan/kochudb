@@ -2,13 +2,12 @@ package com.kochudb.types;
 
 import static com.kochudb.k.Record.KEY;
 import static com.kochudb.k.Record.VALUE;
+import static com.kochudb.utils.ByteUtil.intToBytes;
 
-import com.kochudb.io.FileIO;
+public record KeyValuePair(ByteArray key, ByteArray val) {
 
-public record KVPair(ByteArrayKey key, ByteArray val) {
-
-	public KVPair(byte[] key, byte[] value) {
-		this(new ByteArrayKey(key), new ByteArray(value));
+	public KeyValuePair(byte[] key, byte[] value) {
+		this(new ByteArray(key), new ByteArray(value));
 	}
 	
 	/**
@@ -24,14 +23,14 @@ public record KVPair(ByteArrayKey key, ByteArray val) {
         byte[] keyData = this.key.serialize();
         byte[] valData = this.val.serialize();
         
-        byte[] keyPrefix = FileIO.intToBytes(KEY.length, keyData.length);
+        byte[] keyPrefix = intToBytes(KEY.length, keyData.length);
         System.arraycopy(keyPrefix, 0, bytes, curPos, KEY.length);
         curPos += KEY.length;
         
         System.arraycopy(keyData, 0, bytes, curPos, keyData.length);
         curPos += keyData.length;
         
-        byte[] valPrefix = FileIO.intToBytes(VALUE.length, valData.length);
+        byte[] valPrefix = intToBytes(VALUE.length, valData.length);
         System.arraycopy(valPrefix, 0, bytes, curPos, VALUE.length);
         curPos += VALUE.length;
         

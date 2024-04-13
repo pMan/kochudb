@@ -1,16 +1,17 @@
-package com.kochudb.types;
+package com.kochudb.storage;
+
+import com.kochudb.types.ByteArray;
 
 /**
  * Skip list Element
  */
 public class SkipListNode {
     
-    // key of type comparable byte[]
-    ByteArrayKey key;
+    // key/value of type ByteArray
+    ByteArray key, val;
     
-    // value of type ByteArrayValue
-    ByteArray val;
-
+    public boolean deleted;
+    
     // references to all four neighbors
     public SkipListNode left, right, up, down;
 
@@ -20,7 +21,7 @@ public class SkipListNode {
      * @param key key
      * @param val value
      */
-    public SkipListNode(ByteArrayKey key, ByteArray val) {
+    public SkipListNode(ByteArray key, ByteArray val) {
         this.key = key;
         this.val = val;
 
@@ -28,15 +29,32 @@ public class SkipListNode {
         right = null;
         up = null;
         down = null;
+        deleted = false;
     }
     
-    public ByteArrayKey getKey() {
+    public ByteArray getKey() {
         return key;
     }
     
     public ByteArray getValue() {
         return val;
     }
+    
+    public void setValue(ByteArray val) {
+        this.val = val;
+    }
+    
+    public void delete() {
+		deleted = true;
+	}
+    
+    public void undelete() {
+		deleted = false;
+	}
+    
+    public boolean isDeleted() {
+		return deleted;
+	}
     
     @Override
     public String toString() {

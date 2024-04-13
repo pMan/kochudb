@@ -1,4 +1,4 @@
-package com.kochudb.types;
+package com.kochudb.storage;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,11 +19,12 @@ import com.kochudb.k.K;
 import com.kochudb.server.KVStorage;
 import com.kochudb.tasks.LevelCompactor;
 import com.kochudb.tasks.MemTableFlusher;
+import com.kochudb.types.ByteArray;
 
 /**
  * LSM Tree implementing basic operation on data store
  */
-public class LSMTree implements KVStorage<ByteArrayKey, ByteArray> {
+public class LSMTree implements KVStorage<ByteArray, ByteArray> {
 
     private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
 
@@ -102,7 +103,7 @@ public class LSMTree implements KVStorage<ByteArrayKey, ByteArray> {
      * Search in-memory first, then disk
      */
     @Override
-    public ByteArray get(ByteArrayKey key) {
+    public ByteArray get(ByteArray key) {
         if (memTable.containsKey(key))
             return memTable.get(key).val;
 
@@ -129,7 +130,7 @@ public class LSMTree implements KVStorage<ByteArrayKey, ByteArray> {
      * is restricted to 4MB
      */
     @Override
-    public byte[] set(ByteArrayKey key, ByteArray val) {
+    public byte[] set(ByteArray key, ByteArray val) {
         // start memTable flusher thread
         if (curSkipListSize >= maxSkipListSize) {
             memTableQueue.add(memTable);
@@ -154,7 +155,7 @@ public class LSMTree implements KVStorage<ByteArrayKey, ByteArray> {
      * Delete key from data store
      */
     @Override
-    public byte[] del(ByteArrayKey key) {
+    public byte[] del(ByteArray key) {
         memTable.put(key, new ByteArray());
         return "ok".getBytes();
     }

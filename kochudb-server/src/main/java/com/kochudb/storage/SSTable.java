@@ -1,4 +1,4 @@
-package com.kochudb.types;
+package com.kochudb.storage;
 
 import java.io.File;
 import java.io.IOException;
@@ -10,8 +10,10 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.kochudb.io.FileIO;
 import com.kochudb.k.K;
+import com.kochudb.types.ByteArray;
+import com.kochudb.types.KeyValuePair;
+import com.kochudb.utils.FileUtil;
 
 /**
  * MemTable and SSTable operations
@@ -48,11 +50,11 @@ public class SSTable {
      * @param key search key
      * @return value for the key
      */
-    public ByteArray search(ByteArrayKey key) {
+    public ByteArray search(ByteArray key) {
         int level = 0;
         
         // sorted newest first
-        File[] indexFiles = FileIO.findFiles(basePath, level);
+        File[] indexFiles = FileUtil.findFiles(basePath, level);
         
         while (indexFiles.length > 0 || level <= K.NUM_LEVELS) {
             logger.debug("Searching key in level {}", level);
@@ -62,11 +64,12 @@ public class SSTable {
                     continue;
                 
                 try {
+                	SSTSegment segment = new SSTSegment(level);
                 	String absFilePath = indexFile.getAbsolutePath();
-                    Map<ByteArrayKey, Long> curIndex = FileIO.readIndexFile(absFilePath);
+                    Map<ByteArray, Long> curIndex = segment.parseIndexFile(absFilePath);
 
                     if (curIndex.containsKey(key)) {
-                        KVPair record = FileIO.readKVPair(absFilePath.replace(".idx", ".dat"), curIndex.get(key));
+                        KeyValuePair record = segment.readKVPair(absFilePath.replace(".idx", K.DATA_FILE_EXT), curIndex.get(key));
                         return record.val();
                     }
                 } catch (IOException e) {
@@ -76,7 +79,7 @@ public class SSTable {
                 }
             }
             level++;
-            indexFiles = FileIO.findFiles(basePath, level);
+            indexFiles = FileUtil.findFiles(basePath, level);
         }
         logger.debug("Key not found");
         return new ByteArray();

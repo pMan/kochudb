@@ -1,5 +1,9 @@
 package com.kochudb.server;
 
+import static com.kochudb.k.K.ERR_INVALID_CLI_ARGS;
+import static com.kochudb.k.K.USAGE_HELP;
+import static com.kochudb.k.K.WELCOME_BANNER;
+
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -8,8 +12,6 @@ import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.kochudb.k.K;
 
 /**
  * Main class.
@@ -22,9 +24,9 @@ public class Main {
 
     public static void main(String[] args) throws IOException, FileNotFoundException {
         if (args.length > 1) {
-            System.out.println(K.USAGE_HELP);
+            System.out.println(USAGE_HELP);
             logger.warn("Invalid arguments");
-            System.exit(K.ERR_INVALID_CLI_ARGS);
+            System.exit(ERR_INVALID_CLI_ARGS);
         }
 
         prop = new Properties();
@@ -59,7 +61,7 @@ public class Main {
             }
         });
 
-        System.out.printf((K.WELCOME_BANNER) + "%n", prop.getProperty("version", "0.0.0"));
+        System.out.printf((WELCOME_BANNER) + "%n", prop.getProperty("version", "0.0.0"));
 
         kochuDBServer.start();
     }
