@@ -30,11 +30,15 @@ class SSTSegmentTest {
     
 	@BeforeAll
 	static void setup() throws FileNotFoundException, IOException {
-        props.put("data.dir", "data-test-123");
-        lsmt = new LSMTree(props);
+        props.put("data.dir", System.getProperty("java.io.tmpdir"));
         
+        File dataDir = new File(props.getProperty("data.dir"));
+        dataDir.mkdirs();
+        dataDir.deleteOnExit();
+        
+        lsmt = new LSMTree(props);
+
 		seg = new SSTSegment(0);
-		dataDir = new File(new File(seg.getFilesNames()[0]).getParent());
 	}
 
 	@Test
@@ -111,9 +115,6 @@ class SSTSegmentTest {
 
 	@AfterAll
 	static void teardown() throws IOException {
-		if (dataDir.exists() && dataDir.isDirectory()) {
-			dataDir.delete();
-		}
 	}
 
 }

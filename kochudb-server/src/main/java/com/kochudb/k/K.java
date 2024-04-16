@@ -2,6 +2,10 @@ package com.kochudb.k;
 
 public final class K {
     
+	// props
+	public static final String DEFAULT_PORT = "2222";
+	public static final String DEFAULT_POOL_SIZE = "26";
+	
     // tree
     public static final int DEFAULT_MEMTABLE_MAX_SIZE = 2;
     public static final int VALUE_MAX_SIZE = (1 << 20) * 4;
@@ -9,11 +13,11 @@ public final class K {
     // file
     public static final String INDEX_FILE_EXT = ".idx";
     public static final String DATA_FILE_EXT = ".kdb";
-    public static final String L0_INDEX_FILE_PATTERN = "^[0-9]+\\.[0-9]+\\.idx$";
-    public static final String L0_DATA_FILE_PATTERN = "^[0-9]+\\.[0-9]+\\.dat$";
+    public static final String L0_INDEX_FILE_PATTERN = "^[0-9]+\\.[0-9]+\\" + INDEX_FILE_EXT + "$";
+    public static final String L0_DATA_FILE_PATTERN = "^[0-9]+\\.[0-9]+\\" + DATA_FILE_EXT + "$";
     
-    public static final String INDEX_FILE_PATTERN = "^l[0-9]+_[0-9]+\\.[0-9]+\\.idx$";
-    public static final String DATA_FILE_PATTERN = "^l[0-9]+_[0-9]+\\.[0-9]+\\.dat$";
+    public static final String INDEX_FILE_PATTERN = "^l[0-9]+_[0-9]+\\.[0-9]+\\" + INDEX_FILE_EXT + "$";
+    public static final String DATA_FILE_PATTERN = "^l[0-9]+_[0-9]+\\.[0-9]+\\" + DATA_FILE_EXT + "$";
     
     // compaction
     public static final int LEVEL_ZERO_NUM_FILES = 5;
