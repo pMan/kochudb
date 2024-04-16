@@ -1,13 +1,16 @@
 package com.kochudb.server;
 
+import static com.kochudb.k.K.DEFAULT_POOL_SIZE;
+import static com.kochudb.k.K.DEFAULT_PORT;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.lang.invoke.MethodHandles;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Properties;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -19,45 +22,42 @@ import com.kochudb.types.ByteArray;
 
 public class KochuDBServer extends Thread {
 
-    private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
+	private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
 
-    private static ServerSocket serverSocket;
-    
-    static boolean alive;
-    
-    KVStorage<ByteArray, ByteArray> storageEngine;
+	private static ServerSocket serverSocket;
+	KVStorage<ByteArray, ByteArray> storageEngine;
+	ThreadPoolExecutor queryPool;
+	static boolean alive;
 
-    private static int port = 2222;
-    
-    ExecutorService executor;
-    
-    public KochuDBServer(Properties context) throws IOException {
-        setName("front-end");
-        
-        port = Integer.parseInt(context.getProperty("server.port"));
-        
-        serverSocket = new ServerSocket(port);
-        storageEngine = new LSMTree(context);
-        executor = Executors.newFixedThreadPool(25);
-        
-        alive = true;
-    }
+	public KochuDBServer(Properties context) throws IOException {
+		setName("front-end");
 
-    @Override
-    public void run() {
-        logger.info("Server accepting requests on :{}", port);
-        listen();
-    }
+		int port = Integer.parseInt(context.getProperty("server.port", DEFAULT_PORT));
+		int maxParallelQueries = Integer.parseInt(context.getProperty("query.pool.size", DEFAULT_POOL_SIZE));
 
-    public void listen() {
+		serverSocket = new ServerSocket(port);
+		logger.info("Server accepting connections on :{}", port);
+
+		storageEngine = new LSMTree(context);
+		queryPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(maxParallelQueries);
+
+		alive = true;
+	}
+
+	@Override
+	public void run() {
+		listen();
+	}
+
+	public void listen() {
 		while (alive) {
 			try {
 				Socket socket = serverSocket.accept();
 				ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
 				Request req = (Request) ois.readObject();
 
-				executor.submit(new Querier(socket, req, storageEngine));
-				
+				queryPool.submit(new Querier(socket, req, storageEngine));
+
 			} catch (ClassNotFoundException | IOException e) {
 				if (!alive)
 					logger.info("Server shut down gracefully");
@@ -66,10 +66,10 @@ public class KochuDBServer extends Thread {
 				break;
 			}
 		}
-		System.out.println("Server shut down");
-    }
+		System.out.println("Bye");
+	}
 
-    // SIGINT+
+	// SIGINT+
 	public void terminate() throws IOException {
 		alive = false;
 		if (serverSocket != null) {

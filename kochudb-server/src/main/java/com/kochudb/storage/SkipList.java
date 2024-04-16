@@ -12,8 +12,11 @@ import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 import com.kochudb.types.ByteArray;
 
 /**
- * SkipList is a probabilistic list that offers average O(log n) runtime
- * for insert, search, delete and update operations.
+ * SkipList is a probabilistic list that offers average O(log n) runtime for insert, 
+ * search, delete and update operations.
+ * 
+ * This implementation is thread safe. Delete operation is a soft-delete.
+ * 
  */
 public class SkipList {
 

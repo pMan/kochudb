@@ -34,21 +34,20 @@ public class Main {
         try {
             prop.load(Main.class.getClassLoader().getResourceAsStream("application.properties"));
 
-            // additional config file
+            // load additional config file
             if (args.length == 1) {
-                Properties add = new Properties();
-                add.load(new FileInputStream(args[0]));
-                prop.putAll(add);
+                Properties override = new Properties();
+                override.load(new FileInputStream(args[0]));
+                prop.putAll(override);
             }
         } catch (IOException e) {
-            //e.printStackTrace();
             throw e;
         }
 
         KochuDBServer kochuDBServer = new KochuDBServer(prop);
 
         logger.info("Register shutdown hook");
-
+        
         Runtime.getRuntime().addShutdownHook(new Thread() {
             public void run() {
                 try {

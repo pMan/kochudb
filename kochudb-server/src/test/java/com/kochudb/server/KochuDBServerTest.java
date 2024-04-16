@@ -30,7 +30,12 @@ class KochuDBServerTest {
     @BeforeAll
     public static void setup() throws Exception {
         // Setup
-        p.load(new FileInputStream("src/test/resources/application-test.properties"));
+        p.load(new FileInputStream("src/main/resources/application.properties"));
+        
+        p.setProperty("server.port", "2223");
+        p.setProperty("query.pool.size", "25");
+        p.setProperty("data.dir", "data-test-123");
+        
         kochuDBServerUnderTest = mock(KochuDBServer.class, withSettings().useConstructor(p));
 
         kochuDBServerUnderTest.start();
@@ -45,10 +50,10 @@ class KochuDBServerTest {
     @AfterAll
     static void testTerminate() throws IOException {
         // Run the test
-        kochuDBServerUnderTest.terminate();
-        File dir = new File(p.getProperty("data.dir"));
+    	File dir = new File(p.getProperty("data.dir"));
         if (dir.exists() && dir.isDirectory())
         	dir.delete();
+        kochuDBServerUnderTest.terminate();
         // Verify the results
     }
 }

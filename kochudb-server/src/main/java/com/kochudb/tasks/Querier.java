@@ -30,6 +30,7 @@ public class Querier implements Runnable {
 
 	@Override
 	public void run() {
+		Thread.currentThread().setName("querier");
 		byte[] response = switch (req.getCommand()) {
 		case "get" -> storageEngine.get(new ByteArray(req.getKey())).serialize();
 		case "set" -> storageEngine.set(new ByteArray(req.getKey()), new ByteArray(req.getValue()));
