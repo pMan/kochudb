@@ -11,11 +11,14 @@ import java.lang.invoke.MethodHandles;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.kochudb.storage.LSMTree;
+import com.kochudb.storage.Segment;
 
 public class FileUtil {
 
@@ -31,7 +34,17 @@ public class FileUtil {
 	public static File[] findFiles(String dataDirectory, int level) {
 		return findFiles(dataDirectory, level, Comparator.comparingLong(File::lastModified));
 	}
-
+	
+	public static List<Segment> findSegments(String dataDirectory, int level) {
+		File[] files = findFiles(dataDirectory, level, Comparator.comparingLong(File::lastModified));
+		List<Segment> segments = new LinkedList<Segment>();
+		for (File file: files) {
+			Segment seg = new Segment(level, file.getAbsolutePath(), file.getAbsolutePath().replaceFirst(".idx$", DATA_FILE_EXT));
+			segments.add(seg);
+		}
+		return segments;
+	}
+	
 	/**
 	 * Find all files from the given level, sorted by comparator
 	 * 

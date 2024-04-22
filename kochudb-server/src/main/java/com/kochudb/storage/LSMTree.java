@@ -97,7 +97,7 @@ public class LSMTree implements KVStorage<ByteArray, ByteArray> {
         compactorExecutor = new ScheduledThreadPoolExecutor(1, (runnable) -> {
             return new Thread(runnable, "compactor");
         });
-        compactorExecutor.scheduleWithFixedDelay(new LevelCompactor(dataDir), 5, 5, TimeUnit.SECONDS);
+        compactorExecutor.scheduleWithFixedDelay(new LevelCompactor(dataDir, ssTable), 5, 5, TimeUnit.SECONDS);
     }
 
     /**

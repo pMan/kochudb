@@ -3,6 +3,8 @@ package com.kochudb.tasks;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.kochudb.storage.SSTable;
+
 import java.io.File;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -14,7 +16,7 @@ class LevelCompactorTest {
     @BeforeEach
     void setUp() {
         File f = new File("test-dir");
-        levelCompactorUnderTest = new LevelCompactor(f);
+        levelCompactorUnderTest = new LevelCompactor(f, new SSTable(f));
     }
 
     @Test

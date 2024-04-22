@@ -17,11 +17,11 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import com.kochudb.storage.LSMTree;
-import com.kochudb.storage.SSTSegment;
+import com.kochudb.storage.Segment;
 
-class SSTSegmentTest {
+class SegmentTest {
 
-	private static SSTSegment seg;
+	private static Segment seg;
 
 	static File dataDir;
 	
@@ -38,7 +38,7 @@ class SSTSegmentTest {
         
         lsmt = new LSMTree(props);
 
-		seg = new SSTSegment(0);
+		seg = new Segment(0, "testfile.idx", "testfile.kdb");
 	}
 
 	@Test
@@ -46,8 +46,9 @@ class SSTSegmentTest {
 		// Setup
 		final Map<ByteArray, Long> keyToOffset = Map.ofEntries(Map.entry(new ByteArray("t"), 10L));
 
+		//Segment seg = new Segment(0);
 		// Run the test
-		seg.writeIndexFile(seg.getFilesNames()[0], keyToOffset);
+		seg.saveIndexFile(keyToOffset);
 
 		// Verify the results
 	}
@@ -56,7 +57,7 @@ class SSTSegmentTest {
 	static void testReadIndexFile() {
 		// Setup
 		// Run the test
-		final Map<ByteArray, Long> result = seg.parseIndexFile(seg.getFilesNames()[0]);
+		final Map<ByteArray, Long> result = seg.parseIndexFile();
 
 		assertTrue(result.containsKey(new ByteArray("t")));
 		assertEquals(0L, result.get(new ByteArray("t")));
@@ -65,7 +66,7 @@ class SSTSegmentTest {
 	@Test
 	static void testAppendData() throws Exception {
 		// Setup
-		final RandomAccessFile dataFile = new RandomAccessFile(seg.getFilesNames()[1], "r");
+		final RandomAccessFile dataFile = new RandomAccessFile(seg.getDataFile(), "r");
 
 		// Run the test
 		// final long result = FileIO.appendData(dataFile, "t".getBytes(), Record.KEY);

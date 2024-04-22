@@ -17,7 +17,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.kochudb.storage.SSTSegment;
 import com.kochudb.storage.SSTable;
 import com.kochudb.utils.FileUtil;
 
@@ -35,14 +34,17 @@ public class LevelCompactor implements Runnable {
 	private static volatile AtomicBoolean isRunning;
 
 	File dir;
-
+	SSTable ssTable;
+	
 	/**
 	 * Constructor
 	 * 
 	 * @param dir data directory
 	 */
-	public LevelCompactor(File dir) {
+	public LevelCompactor(File dir, SSTable ssTable) {
 
+		this.ssTable = ssTable;
+		
 		isRunning = new AtomicBoolean(false);
 
 		levelZeroFileSize = 1024 * LEVEL_ZERO_FILE_MAX_SIZE_KB; // 4 kb
@@ -66,7 +68,11 @@ public class LevelCompactor implements Runnable {
 		}
 
 		logger.trace("Compaction thread started");
-		compactLevel(0);
+		try {
+			compactLevel(0);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
 		if (isRunning.getAndSet(false))
 			logger.trace("Compaction thread finished the job");
@@ -80,78 +86,44 @@ public class LevelCompactor implements Runnable {
 	 * @return boolean
 	 */
 	boolean shouldStartCompactionNow(File[] files, int level) {
+		if (files.length == 0)
+			return false;
+		
 		int allowedNumFilesInCurLevel = computeNumFilesInLevel(level);
+		if (files.length > allowedNumFilesInCurLevel)
+			return true;
+		
 		long maxFileSizeInLevel = computeMaxFileSizeInLevel(level);
 		long maxTotalSizeInLevel = allowedNumFilesInCurLevel * maxFileSizeInLevel;
 		long curTotalSizeInLevel = Arrays.stream(files).map(File::length).mapToLong(Long::longValue).sum();
 
-		return curTotalSizeInLevel > maxTotalSizeInLevel || files.length > allowedNumFilesInCurLevel;
+		return curTotalSizeInLevel > maxTotalSizeInLevel;
 	}
 
 	/**
 	 * Decide whether current level to be compacted. If yes, start compaction.
 	 *
 	 * @param level current level
+	 * @throws IOException 
 	 */
-	void compactLevel(int level) {
+	void compactLevel(int level) throws IOException {
 		File[] files = FileUtil.findFiles(dataDirectory, level);
 
 		if (shouldStartCompactionNow(files, level)) {
 			logger.debug("Compaction started. current level: {}, number of files in level: {}", level, files.length);
 
-			String bigTmpIdxFile = compactFiles(level, files, 0, files.length - 1);
-
-			logger.trace("New compacted file created in level {}: {}", level, bigTmpIdxFile);
-
-			FileUtil.renameIndexFile(bigTmpIdxFile);
-
+			ssTable.mergeSegments(level);
+			
+			logger.trace("Deleting compacted files at level: {}", level);
 			// all files from cur level are compacted and moved to next level
 			// delete all files marked for deletion
 			deleteOutdatedFiles();
 
-			// propagate to next level
 			if (level < NUM_LEVELS)
 				compactLevel(level + 1);
 		} else {
 			logger.trace("Did not meet all criteria to begin compaction in {}", level);
 		}
-	}
-
-	/**
-	 * merge all SSTables - two adjacent files at a time
-	 * 
-	 * @param curLevel current level
-	 * @param files    array of index files
-	 * @param start    start position
-	 * @param end      end position
-	 * @return absolute name of merged file
-	 */
-	private String compactFiles(int curLevel, File[] files, int start, int end) {
-		if (start == end)
-			return files[start].getAbsolutePath();
-
-		if (start == end - 1)
-			return mergeTwoFiles(files[start], files[end], curLevel);
-
-		int mid = start + (end - start) / 2;
-
-		String file1 = compactFiles(curLevel, files, start, mid);
-		String file2 = compactFiles(curLevel, files, mid + 1, end);
-
-		return mergeTwoFiles(new File(file1), new File(file2), curLevel);
-	}
-
-	/**
-	 * merge tow SSTable into one
-	 * 
-	 * @param file1    first file
-	 * @param file2    second file
-	 * @param curLevel current level
-	 * @return absolute name of merged file
-	 */
-	private String mergeTwoFiles(File file1, File file2, int curLevel) {
-		SSTSegment sstSegment = new SSTSegment(curLevel + 1);
-		return sstSegment.mergeTwoFiles(file1, file2);
 	}
 
 	/**
