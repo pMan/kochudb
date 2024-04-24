@@ -170,20 +170,20 @@ public class Segment {
 		int valLen = bytesToInt(valHeader);
 		byte[] val = readBytes(raf, offset, valLen);
 
-		byte[] obj = new byte[KEY.length + VALUE.length + keyLen + valLen];
+		byte[] bytes = new byte[KEY.length + VALUE.length + keyLen + valLen];
 		int curPos = 0;
-		System.arraycopy(keyHeader, 0, obj, curPos, KEY.length);
+		System.arraycopy(keyHeader, 0, bytes, curPos, KEY.length);
 		curPos += KEY.length;
 
-		System.arraycopy(key, 0, obj, curPos, key.length);
+		System.arraycopy(key, 0, bytes, curPos, key.length);
 		curPos += key.length;
 
-		System.arraycopy(valHeader, 0, obj, curPos, VALUE.length);
+		System.arraycopy(valHeader, 0, bytes, curPos, VALUE.length);
 		curPos += VALUE.length;
 
-		System.arraycopy(val, 0, obj, curPos, val.length);
+		System.arraycopy(val, 0, bytes, curPos, val.length);
 
-		return obj;
+		return bytes;
 	}
 
 	/**

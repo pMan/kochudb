@@ -12,7 +12,6 @@ import com.kochudb.storage.SSTable;
 import com.kochudb.storage.Segment;
 import com.kochudb.storage.SkipList;
 import com.kochudb.types.ByteArray;
-import com.kochudb.utils.FileUtil;
 
 public class MemTableFlusher implements Runnable {
 

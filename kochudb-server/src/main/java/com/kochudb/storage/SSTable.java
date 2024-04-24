@@ -1,6 +1,5 @@
 package com.kochudb.storage;
 
-import static com.kochudb.k.K.DATA_FILE_EXT;
 import static com.kochudb.k.K.LEVEL_MAX_SIZE_MULTIPLIER;
 import static com.kochudb.k.K.LEVEL_ZERO_FILE_MAX_SIZE_KB;
 import static com.kochudb.utils.FileUtil.createDatFromIdx;
@@ -17,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.logging.log4j.LogManager;
@@ -107,28 +107,25 @@ public class SSTable {
 	 * @param level
 	 * @throws IOException
 	 */
-	public void mergeSegments(int level) throws IOException {
+	public void compactAndPromoteSegments(int level) throws IOException {
 		List<File> files = Arrays.asList(FileUtil.findFiles(basePath, level));
-		for (File f: markedForDeletion) {
-			files.remove(f);
-		}
+		for (File toDelete: markedForDeletion)
+			files.remove(toDelete);
+		
 		List<Segment> segments = new LinkedList<Segment>();
-		for (File file: files) {
-			Segment seg = new Segment(level, file.getAbsolutePath(), file.getAbsolutePath().replaceFirst(".idx$", DATA_FILE_EXT));
-			segments.add(seg);
-		}
-    	long maxFileSizeInLevel = computeMaxFileSizeInLevel(level + 1);
-    	
-    	PriorityQueue<Object[]> keyValueHeap = new PriorityQueue<Object[]>((a, b) -> {
-    		ByteArray keya = (ByteArray) a[0];
-    		ByteArray keyb = (ByteArray) b[0];
+		for (File file: files)
+			segments.add(new Segment(level, file.getAbsolutePath()));
+		
+    	PriorityQueue<Object[]> keyValueHeap = new PriorityQueue<Object[]>((first, second) -> {
+    		ByteArray keyFirst = (ByteArray) first[0];
+    		ByteArray keySecond = (ByteArray) second[0];
     		
-    		if (keya.compareTo(keyb) == 0) {
-    			Segment sega = (Segment) a[2];
-    			Segment segb = (Segment) b[2];
-    			return sega.getIndexFile().compareTo(segb.getIndexFile());
+    		if (keyFirst.compareTo(keySecond) == 0) {
+    			Segment segFirst = (Segment) first[2];
+    			Segment segSecond = (Segment) second[2];
+    			return segFirst.getIndexFile().compareTo(segSecond.getIndexFile());
     		}
-    		return keya.compareTo(keyb);
+    		return keyFirst.compareTo(keySecond);
     	});
 
 		Map<Segment, RandomAccessFile> openedFiles = new HashMap<>();
@@ -136,65 +133,64 @@ public class SSTable {
     	for (Segment seg: segments) {
     		for (Map.Entry<ByteArray, Long> indexData: seg.parseIndexFile().entrySet()) {
     			Object[] objArray = new Object[] {indexData.getKey(), indexData.getValue(), seg};
-    			keyValueHeap.add(objArray);
+    			keyValueHeap.offer(objArray);
     		}
     		openedFiles.put(seg, createDatFromIdx(seg.getIndexFile()));
     	}
     	
-    	Segment segNew = this.getMostRecentSegment(level + 1);
-    	Map<ByteArray, Long> updatedIdxMap = new HashMap<>();
-    	RandomAccessFile newDataFile = segNew.openDataFileForWrite();
+    	Segment curSeg = this.getMostRecentSegment(level + 1);
+    	Map<ByteArray, Long> updatedIdxMap = new TreeMap<>();
+    	RandomAccessFile curDataFile = curSeg.openDataFileForWrite();
 
-    	long curSize = 0;
+    	long curSize = 0, maxFileSizeInLevel = computeMaxFileSizeInLevel(level + 1);
+    	
 		while (! keyValueHeap.isEmpty()) {
 			Object[] objArray = keyValueHeap.poll();
-			while (! keyValueHeap.isEmpty() && ((ByteArray)objArray[0]).compareTo(((ByteArray)keyValueHeap.peek()[0])) == 0)
+			while (! keyValueHeap.isEmpty() && ((ByteArray) objArray[0]).compareTo(((ByteArray) keyValueHeap.peek()[0])) == 0)
 				objArray = keyValueHeap.poll();
 			
 			ByteArray key = (ByteArray) objArray[0];
 			Long offset = (Long) objArray[1];
-			Segment segment = (Segment) objArray[2];				
+			Segment segment = (Segment) objArray[2];
 
 			byte[] serializedKVPair = segment.readKVPairBytes(offset);
-			Long newOffset = segNew.appendData(newDataFile, serializedKVPair);
+			Long curOffset = curSeg.appendData(curDataFile, serializedKVPair);
 
-			updatedIdxMap.put((ByteArray)objArray[0], newOffset);
-			
-			curSize += key.length() + Long.BYTES + serializedKVPair.length;
+			updatedIdxMap.put((ByteArray) objArray[0], curOffset);
+			curSize += serializedKVPair.length;
 			
 			if (curSize >= maxFileSizeInLevel) {
-				segNew.saveIndexFile(updatedIdxMap);
-				newDataFile.close();
-				
-				filesToRename.add(segNew.getIndexFile());
+				curSeg.saveIndexFile(updatedIdxMap);
+				curDataFile.close();
 
-				logger.debug("New data file created: {}", segNew.getIndexFile());
-				logger.debug("New index file created: {}", segNew.getDataFile());
+				logger.debug("New data file created: {}", curSeg.getIndexFile());
+				logger.debug("New index file created: {}", curSeg.getDataFile());
 				
-				segNew = createNewSegment(level + 1);
-				
-				newDataFile = segNew.openDataFileForWrite();
-				updatedIdxMap = new HashMap<>();
+				curSeg = createNewSegment(level + 1);
+				curDataFile = curSeg.openDataFileForWrite();
+
+				filesToRename.add(curSeg.getIndexFile());
+				updatedIdxMap.clear();
 				curSize = 0;
 			}
 			// f.setLastModified(Instant.now().getEpochSecond() * 1000);
 		}
-		newDataFile.getFD().sync();
-		newDataFile.close();
+		curDataFile.getFD().sync();
+		curDataFile.close();
 
 		for (RandomAccessFile file : openedFiles.values())
 			file.close();
 
-		if (!updatedIdxMap.isEmpty()) {
-			segNew.saveIndexFile(updatedIdxMap);
-			filesToRename.add(segNew.getIndexFile());
+		if (! updatedIdxMap.isEmpty()) {
+			curSeg.saveIndexFile(updatedIdxMap);
+			filesToRename.add(curSeg.getIndexFile());
 			
-			logger.debug("New data file created: {}", segNew.getIndexFile());
-			logger.debug("New index file created: {}", segNew.getDataFile());
+			logger.debug("New data file created: {}", curSeg.getIndexFile());
+			logger.debug("New index file created: {}", curSeg.getDataFile());
 		}
 
-		for (String path: filesToRename)
-			FileUtil.renameIndexFile(path);
+		for (String tempName: filesToRename)
+			FileUtil.renameIndexFile(tempName);
 		
 		for (Segment seg: segments)
 			SSTable.markedForDeletion.add(new File(seg.getIndexFile()));
@@ -218,12 +214,12 @@ public class SSTable {
 	 * @return
 	 */
 	public Segment getMostRecentSegment(int level) {
-		File[] files = FileUtil.findFiles(basePath, level + 1);
-		if (files.length == 0) {
+		File[] files = FileUtil.findFiles(basePath, level);
+		if (files.length == 0)
 			return createNewSegment(level);
-		}
-		File f = files[files.length - 1];
-		return new Segment(level, f.getAbsolutePath() , f.getAbsolutePath().replaceFirst(".idx$", DATA_FILE_EXT));
+		
+		File mostRecent = files[files.length - 1];
+		return new Segment(level, mostRecent.getAbsolutePath());
 	}
 	
 	/**
@@ -234,7 +230,7 @@ public class SSTable {
 	 */
 	public static Segment createNewSegment(int level) {
     	String[] newFileNames = FileUtil.createNewIdxAndDataFilenames(level);
-    	newFileNames[0] = newFileNames[0].replaceFirst(".idx$", DATA_FILE_EXT);
+    	newFileNames[0] = newFileNames[0].replaceFirst(".idx$", ".idxtmp");
 
     	return new Segment(level, newFileNames[0], newFileNames[1]);
 

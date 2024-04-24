@@ -112,11 +112,9 @@ public class LevelCompactor implements Runnable {
 		if (shouldStartCompactionNow(files, level)) {
 			logger.debug("Compaction started. current level: {}, number of files in level: {}", level, files.length);
 
-			ssTable.mergeSegments(level);
+			ssTable.compactAndPromoteSegments(level);
 			
 			logger.trace("Deleting compacted files at level: {}", level);
-			// all files from cur level are compacted and moved to next level
-			// delete all files marked for deletion
 			deleteOutdatedFiles();
 
 			if (level < NUM_LEVELS)
