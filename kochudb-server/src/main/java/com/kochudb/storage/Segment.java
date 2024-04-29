@@ -105,6 +105,7 @@ public class Segment {
 			}
 
 			indexFile.getFD().sync();
+			logger.debug("New index file created: {}", this.indexFile);
 		} catch (FileNotFoundException fnfe) {
 			logger.error("File not found: {}", this.indexFile);
 			fnfe.printStackTrace();
@@ -121,16 +122,6 @@ public class Segment {
 	 */
 	public RandomAccessFile openDataFileForWrite() throws FileNotFoundException {
 		return new RandomAccessFile(this.dataFile, "rw");
-	}
-
-	/**
-	 * open index file for writing
-	 * 
-	 * @return opened file
-	 * @throws FileNotFoundException
-	 */
-	public RandomAccessFile openIndexFileForWrite() throws FileNotFoundException {
-		return new RandomAccessFile(this.indexFile, "rw");
 	}
 
 	/**

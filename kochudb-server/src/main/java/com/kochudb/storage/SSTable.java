@@ -162,9 +162,7 @@ public class SSTable {
 			if (curSize >= maxFileSizeInLevel) {
 				curSeg.saveIndexFile(updatedIdxMap);
 				curDataFile.close();
-
-				logger.debug("New data file created: {}", curSeg.getIndexFile());
-				logger.debug("New index file created: {}", curSeg.getDataFile());
+				logger.debug("New data file created: {}", curSeg.getDataFile());
 				
 				curSeg = createNewSegment(level + 1);
 				curDataFile = curSeg.openDataFileForWrite();
