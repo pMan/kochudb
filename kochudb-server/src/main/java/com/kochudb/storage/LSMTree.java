@@ -6,9 +6,12 @@ import static com.kochudb.k.K.VALUE_MAX_SIZE;
 import java.io.File;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Properties;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -18,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.kochudb.k.K;
 import com.kochudb.server.KVStorage;
 import com.kochudb.tasks.LevelCompactor;
 import com.kochudb.tasks.MemTableFlusher;
@@ -65,6 +69,13 @@ public class LSMTree implements KVStorage<ByteArray, ByteArray> {
 
     public static File dataDir;
     
+	// files marked for deletion during a compaction process
+	public static Queue<File> markedForDeletion;
+
+	public static List<String> filesToRename;
+	
+	List<Level> levels;
+	
     /**
      * Base class that takes care of all LSM Tree operations, including compaction
      * and indexing.
@@ -90,6 +101,11 @@ public class LSMTree implements KVStorage<ByteArray, ByteArray> {
         
         ssTable = new SSTable(dataDir);
 
+        levels = new ArrayList<Level>();
+        for (int i = 0; i < K.NUM_LEVELS; i++) {
+        	levels.add(new Level(i, this));
+        }
+        
         memTableExecutor = Executors.newSingleThreadExecutor((runnable) -> {
             return new Thread(runnable, "memtable-flusher");
         });
@@ -97,7 +113,8 @@ public class LSMTree implements KVStorage<ByteArray, ByteArray> {
         compactorExecutor = new ScheduledThreadPoolExecutor(1, (runnable) -> {
             return new Thread(runnable, "compactor");
         });
-        compactorExecutor.scheduleWithFixedDelay(new LevelCompactor(dataDir, ssTable), 5, 5, TimeUnit.SECONDS);
+        
+        compactorExecutor.scheduleWithFixedDelay(new LevelCompactor(dataDir, this), 5, 5, TimeUnit.SECONDS);
     }
 
     /**
@@ -123,7 +140,21 @@ public class LSMTree implements KVStorage<ByteArray, ByteArray> {
         }
 
         logger.debug("Searching key in data files");
-        return ssTable.search(key);
+        
+        for (Level level: levels) {
+        	ByteArray val;
+			try {
+				val = level.search(key);
+			} catch (IOException e) {
+				e.printStackTrace();
+				logger.error("Search failed with error: {}", e.getMessage());
+				val = new ByteArray();
+				break;
+			}
+        	if (val != null)
+        		return val;
+        }
+        return new ByteArray();
     }
 
     /**

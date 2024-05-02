@@ -4,7 +4,7 @@ import static com.kochudb.k.Record.KEY;
 import static com.kochudb.k.Record.VALUE;
 import static com.kochudb.utils.ByteUtil.intToBytes;
 
-public record KeyValuePair(ByteArray key, ByteArray val) {
+public record KeyValuePair(ByteArray key, ByteArray value) {
 
 	public KeyValuePair(byte[] key, byte[] value) {
 		this(new ByteArray(key), new ByteArray(value));
@@ -17,11 +17,11 @@ public record KeyValuePair(ByteArray key, ByteArray val) {
 	 * @return byte[]
 	 */
 	public byte[] serialize() {
-        byte[] bytes = new byte[KEY.length + VALUE.length + this.key.length() + this.val.length()];
+        byte[] bytes = new byte[KEY.length + VALUE.length + this.key.length() + this.value.length()];
         int curPos = 0;
         
         byte[] keyData = this.key.serialize();
-        byte[] valData = this.val.serialize();
+        byte[] valData = this.value.serialize();
         
         byte[] keyPrefix = intToBytes(KEY.length, keyData.length);
         System.arraycopy(keyPrefix, 0, bytes, curPos, KEY.length);

@@ -22,6 +22,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.kochudb.types.ByteArray;
 import com.kochudb.types.KeyValuePair;
+import com.kochudb.utils.FileUtil;
 
 public class Segment {
 	private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
@@ -41,6 +42,13 @@ public class Segment {
 		this.dataFile = index.replaceFirst(INDEX_FILE_EXT, DATA_FILE_EXT);
 	}
 
+	public Segment(int level) {
+		this.level = level;
+		String[] names = FileUtil.createNewIdxAndDataFilenames(level);
+		this.indexFile = names[0];
+		this.dataFile = names[1];
+	}
+	
 	public String getIndexFile() {
 		return this.indexFile;
 	}
@@ -84,9 +92,10 @@ public class Segment {
 	 */
 	public void saveIndexFile(Map<ByteArray, Long> keyToOffset) {
 		logger.debug("Creating index file: {}", this.indexFile);
-
+		
 		try (RandomAccessFile indexFile = new RandomAccessFile(this.indexFile, "rw")) {
-
+			indexFile.setLength(0);
+			
 			for (Map.Entry<ByteArray, Long> entry : keyToOffset.entrySet()) {
 
 				byte[] keyBytes = entry.getKey().serialize();
@@ -160,7 +169,8 @@ public class Segment {
 
 		int valLen = bytesToInt(valHeader);
 		byte[] val = readBytes(raf, offset, valLen);
-
+		raf.close();
+		
 		byte[] bytes = new byte[KEY.length + VALUE.length + keyLen + valLen];
 		int curPos = 0;
 		System.arraycopy(keyHeader, 0, bytes, curPos, KEY.length);

@@ -17,6 +17,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.kochudb.storage.LSMTree;
+import com.kochudb.storage.Level;
 import com.kochudb.storage.SSTable;
 import com.kochudb.utils.FileUtil;
 
@@ -34,16 +36,19 @@ public class LevelCompactor implements Runnable {
 	private static volatile AtomicBoolean isRunning;
 
 	File dir;
-	SSTable ssTable;
+	// SSTable ssTable;
+
+	LSMTree tree;
 	
 	/**
 	 * Constructor
 	 * 
 	 * @param dir data directory
 	 */
-	public LevelCompactor(File dir, SSTable ssTable) {
+	public LevelCompactor(File dir, LSMTree lsmTree) {
 
-		this.ssTable = ssTable;
+		//this.ssTable = ssTable;
+		this.tree = lsmTree;
 		
 		isRunning = new AtomicBoolean(false);
 
@@ -85,7 +90,8 @@ public class LevelCompactor implements Runnable {
 	 * @param level current level
 	 * @return boolean
 	 */
-	boolean shouldStartCompactionNow(File[] files, int level) {
+	boolean shouldStartCompactionNow(int level) {
+		File[] files = FileUtil.findFiles(dataDirectory, level);
 		if (files.length == 0)
 			return false;
 		
@@ -107,12 +113,11 @@ public class LevelCompactor implements Runnable {
 	 * @throws IOException 
 	 */
 	void compactLevel(int level) throws IOException {
-		File[] files = FileUtil.findFiles(dataDirectory, level);
+		if (shouldStartCompactionNow(level)) {
+			logger.debug("Compaction started. current level: {}", level);
 
-		if (shouldStartCompactionNow(files, level)) {
-			logger.debug("Compaction started. current level: {}, number of files in level: {}", level, files.length);
-
-			ssTable.compactAndPromoteSegments(level);
+			Level curLevel = new Level(level, this.tree);
+			curLevel.compactLevel();
 			
 			logger.trace("Deleting compacted files at level: {}", level);
 			deleteOutdatedFiles();
@@ -128,7 +133,7 @@ public class LevelCompactor implements Runnable {
 	 * files that are compacted into bigger files are periodically deleted
 	 */
 	private void deleteOutdatedFiles() {
-		for (File file : SSTable.markedForDeletion) {
+		for (File file : LSMTree.markedForDeletion) {
 			String dataFilename = file.getAbsolutePath().replaceFirst(".(idx|idxtmp)$", DATA_FILE_EXT);
 			File datafile = new File(dataFilename);
 
@@ -136,7 +141,7 @@ public class LevelCompactor implements Runnable {
 			logger.debug(datafile.delete() ? "File deleted: {}" : "Failed to delete file: {}", dataFilename);
 		}
 
-		SSTable.markedForDeletion.clear();
+		LSMTree.markedForDeletion.clear();
 	}
 
 	/**
