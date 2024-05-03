@@ -1,6 +1,5 @@
 package com.kochudb.tasks;
 
-import static com.kochudb.k.K.DATA_FILE_EXT;
 import static com.kochudb.k.K.ERR_NO_DATA_DIR;
 import static com.kochudb.k.K.LEVEL_MAX_FILES_MULTIPLIER;
 import static com.kochudb.k.K.LEVEL_MAX_SIZE_MULTIPLIER;
@@ -19,7 +18,6 @@ import org.apache.logging.log4j.Logger;
 
 import com.kochudb.storage.LSMTree;
 import com.kochudb.storage.Level;
-import com.kochudb.storage.SSTable;
 import com.kochudb.utils.FileUtil;
 
 public class LevelCompactor implements Runnable {
@@ -47,13 +45,9 @@ public class LevelCompactor implements Runnable {
 	 */
 	public LevelCompactor(File dir, LSMTree lsmTree) {
 
-		//this.ssTable = ssTable;
 		this.tree = lsmTree;
-		
 		isRunning = new AtomicBoolean(false);
-
 		levelZeroFileSize = 1024 * LEVEL_ZERO_FILE_MAX_SIZE_KB; // 4 kb
-
 		this.dir = dir;
 
 		try {
@@ -120,28 +114,12 @@ public class LevelCompactor implements Runnable {
 			curLevel.compactLevel();
 			
 			logger.trace("Deleting compacted files at level: {}", level);
-			deleteOutdatedFiles();
 
 			if (level < NUM_LEVELS)
 				compactLevel(level + 1);
 		} else {
 			logger.trace("Did not meet all criteria to begin compaction in {}", level);
 		}
-	}
-
-	/**
-	 * files that are compacted into bigger files are periodically deleted
-	 */
-	private void deleteOutdatedFiles() {
-		for (File file : LSMTree.markedForDeletion) {
-			String dataFilename = file.getAbsolutePath().replaceFirst(".(idx|idxtmp)$", DATA_FILE_EXT);
-			File datafile = new File(dataFilename);
-
-			logger.debug(file.delete() ? "File deleted: {}" : "Failed to delete file: {}", file.getAbsolutePath());
-			logger.debug(datafile.delete() ? "File deleted: {}" : "Failed to delete file: {}", dataFilename);
-		}
-
-		LSMTree.markedForDeletion.clear();
 	}
 
 	/**

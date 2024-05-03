@@ -96,7 +96,7 @@ public class FileUtil {
 	}
 
 	/**
-	 * rename an index file (.idx or .idxtmp) t0 data file
+	 * rename a temp index file (.idxtmp) to .idx file
 	 * 
 	 * @param toRename absolute file path
 	 * @return absolute file path

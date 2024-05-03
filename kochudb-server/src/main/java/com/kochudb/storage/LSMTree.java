@@ -45,11 +45,6 @@ public class LSMTree implements KVStorage<ByteArray, ByteArray> {
     Deque<SkipList> memTableQueue;
 
     /**
-     * Reference to SSTable instance
-     */
-    SSTable ssTable;
-
-    /**
      * Size in bytes
      * Threshold for triggering flushing of currently active skiplist
      */
@@ -99,8 +94,6 @@ public class LSMTree implements KVStorage<ByteArray, ByteArray> {
         
         memTable = new SkipList();
         
-        ssTable = new SSTable(dataDir);
-
         levels = new ArrayList<Level>();
         for (int i = 0; i < K.NUM_LEVELS; i++) {
         	levels.add(new Level(i, this));
