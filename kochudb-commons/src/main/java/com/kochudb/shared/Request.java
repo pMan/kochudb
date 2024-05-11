@@ -7,19 +7,20 @@ public class Request implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
-    
+
     String command;
     String key;
     String value;
-    
-    public Request() {}
-    
+
+    public Request() {
+    }
+
     public Request(String com, String key, String val) {
         this.command = com;
         this.key = key;
         this.value = val;
     }
-    
+
     public String getCommand() {
         return command;
     }

@@ -19,18 +19,18 @@ class ByteUtilTest {
     @Test
     void testIntToBytes() {
         int i = 0;
-        assertArrayEquals(new byte[]{0, 0, 0, 0}, ByteUtil.intToBytes(4, i));
+        assertArrayEquals(new byte[] { 0, 0, 0, 0 }, ByteUtil.intToBytes(4, i));
     }
 
     @Test
     void testLongToBytes() {
-        byte[] lb = new byte[] {0, 0, 0, 0, 0, 0, 0, 0};
+        byte[] lb = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 };
         assertArrayEquals(lb, ByteUtil.longToBytes(0L));
     }
 
     @Test
     void testBytesToLong() {
-        byte[] lb = new byte[] {0, 0, 0, 0, 0, 0, 0, 0};
+        byte[] lb = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 };
         assertEquals(0L, ByteUtil.bytesToLong(lb));
     }
 

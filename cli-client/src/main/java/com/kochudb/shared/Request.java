@@ -3,46 +3,47 @@ package com.kochudb.shared;
 import java.io.Serializable;
 
 public class Request implements Serializable {
-	private static final long serialVersionUID = 1L;
-	
-	String command;
-	String key;
-	String value;
-	
-	public Request() {}
-	
-	public Request(String com, String key, String val) {
-		this.command = com;
-		this.key = key;
-		this.value = val;
-	}
-	
-	public String getCommand() {
-		return command;
-	}
+    private static final long serialVersionUID = 1L;
 
-	public void setCommand(String command) {
-		this.command = command;
-	}
+    String command;
+    String key;
+    String value;
 
-	public String getKey() {
-		return key;
-	}
+    public Request() {
+    }
 
-	public void setKey(String key) {
-		this.key = key;
-	}
+    public Request(String com, String key, String val) {
+        this.command = com;
+        this.key = key;
+        this.value = val;
+    }
 
-	public String getValue() {
-		return value;
-	}
+    public String getCommand() {
+        return command;
+    }
 
-	public void setValue(String value) {
-		this.value = value;
-	}
+    public void setCommand(String command) {
+        this.command = command;
+    }
 
-	@Override
-	public String toString() {
-		return "[key=" + key + ", value=" + value + ", command=" + command + "]";
-	}
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
+    }
+
+    public String getValue() {
+        return value;
+    }
+
+    public void setValue(String value) {
+        this.value = value;
+    }
+
+    @Override
+    public String toString() {
+        return "[key=" + key + ", value=" + value + ", command=" + command + "]";
+    }
 }

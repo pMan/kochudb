@@ -6,12 +6,12 @@ import com.kochudb.types.ByteArray;
  * Skip list Element
  */
 public class SkipListNode {
-    
+
     // key/value of type ByteArray
     ByteArray key, val;
-    
+
     public boolean deleted;
-    
+
     // references to all four neighbors
     public SkipListNode left, right, up, down;
 
@@ -31,33 +31,33 @@ public class SkipListNode {
         down = null;
         deleted = false;
     }
-    
+
     public ByteArray getKey() {
         return key;
     }
-    
+
     public ByteArray getValue() {
         return val;
     }
-    
+
     public void setValue(ByteArray val) {
         this.val = val;
     }
-    
+
     public void delete() {
-		deleted = true;
-	}
-    
+        deleted = true;
+    }
+
     public void undelete() {
-		deleted = false;
-	}
-    
+        deleted = false;
+    }
+
     public boolean isDeleted() {
-		return deleted;
-	}
-    
+        return deleted;
+    }
+
     @Override
     public String toString() {
-    	return new String(key.serialize());
+        return new String(key.serialize());
     }
 }
