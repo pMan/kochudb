@@ -22,59 +22,59 @@ import com.kochudb.types.ByteArray;
 
 public class KochuDBServer extends Thread {
 
-	private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
+    private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
 
-	private static ServerSocket serverSocket;
-	KVStorage<ByteArray, ByteArray> storageEngine;
-	ThreadPoolExecutor queryPool;
-	static boolean alive;
+    private static ServerSocket serverSocket;
+    private KVStorage<ByteArray, ByteArray> storageEngine;
+    private ThreadPoolExecutor queryPool;
+    private static boolean alive;
 
-	public KochuDBServer(Properties context) throws IOException {
-		setName("front-end");
+    public KochuDBServer(Properties context) throws IOException {
+        setName("front-end");
 
-		int port = Integer.parseInt(context.getProperty("server.port", DEFAULT_PORT));
-		int maxParallelQueries = Integer.parseInt(context.getProperty("query.pool.size", DEFAULT_POOL_SIZE));
+        int port = Integer.parseInt(context.getProperty("server.port", DEFAULT_PORT));
+        int maxParallelQueries = Integer.parseInt(context.getProperty("query.pool.size", DEFAULT_POOL_SIZE));
 
-		serverSocket = new ServerSocket(port);
-		logger.info("Server accepting connections on :{}", port);
+        serverSocket = new ServerSocket(port);
+        logger.info("Server accepting connections on :{}", port);
 
-		storageEngine = new LSMTree(context);
-		queryPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(maxParallelQueries);
+        storageEngine = new LSMTree(context);
+        queryPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(maxParallelQueries);
 
-		alive = true;
-	}
+        alive = true;
+    }
 
-	@Override
-	public void run() {
-		listen();
-	}
+    @Override
+    public void run() {
+        listen();
+    }
 
-	public void listen() {
-		while (alive) {
-			try {
-				Socket socket = serverSocket.accept();
-				ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-				Request req = (Request) ois.readObject();
+    public void listen() {
+        while (alive) {
+            try {
+                Socket socket = serverSocket.accept();
+                ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+                Request req = (Request) ois.readObject();
 
-				queryPool.submit(new Querier(socket, req, storageEngine));
+                queryPool.submit(new Querier(socket, req, storageEngine));
 
-			} catch (ClassNotFoundException | IOException e) {
-				if (!alive)
-					logger.info("Server shut down gracefully");
-				else
-					System.out.println("Server crashed");
-				break;
-			}
-		}
-		System.out.println("Bye");
-	}
+            } catch (ClassNotFoundException | IOException e) {
+                if (!alive)
+                    logger.info("Server shut down gracefully");
+                else
+                    System.out.println("Server crashed");
+                break;
+            }
+        }
+        System.out.println("Bye");
+    }
 
-	// SIGINT+
-	public void terminate() throws IOException {
-		alive = false;
-		if (serverSocket != null) {
-			logger.info("Attempting clean shut down");
-			serverSocket.close();
-		}
-	}
+    // SIGINT+
+    public void terminate() throws IOException {
+        alive = false;
+        if (serverSocket != null) {
+            logger.info("Attempting clean shut down");
+            serverSocket.close();
+        }
+    }
 }

@@ -21,101 +21,101 @@ import com.kochudb.storage.Segment;
 
 class SegmentTest {
 
-	private static Segment seg;
+    private static Segment seg;
 
-	static File dataDir;
-	
-	static LSMTree lsmt;
+    static File dataDir;
+
+    static LSMTree lsmt;
     static Properties props = new Properties();
-    
-	@BeforeAll
-	static void setup() throws FileNotFoundException, IOException {
+
+    @BeforeAll
+    static void setup() throws FileNotFoundException, IOException {
         props.put("data.dir", System.getProperty("java.io.tmpdir"));
-        
+
         File dataDir = new File(props.getProperty("data.dir"));
         dataDir.mkdirs();
         dataDir.deleteOnExit();
-        
+
         lsmt = new LSMTree(props);
 
-		seg = new Segment(0, "testfile.idx", "testfile.kdb");
-	}
+        seg = new Segment(0, "testfile.idx", "testfile.kdb");
+    }
 
-	@Test
-	void testWriteIndexFile() throws Exception {
-		// Setup
-		final Map<ByteArray, Long> keyToOffset = Map.ofEntries(Map.entry(new ByteArray("t"), 10L));
+    @Test
+    void testWriteIndexFile() throws Exception {
+        // Setup
+        final Map<ByteArray, Long> keyToOffset = Map.ofEntries(Map.entry(new ByteArray("t"), 10L));
 
-		//Segment seg = new Segment(0);
-		// Run the test
-		seg.saveIndexFile(keyToOffset);
+        // Segment seg = new Segment(0);
+        // Run the test
+        seg.saveIndexFile(keyToOffset);
 
-		// Verify the results
-	}
+        // Verify the results
+    }
 
-	@Test
-	static void testReadIndexFile() {
-		// Setup
-		// Run the test
-		final Map<ByteArray, Long> result = seg.parseIndexFile();
+    @Test
+    static void testReadIndexFile() {
+        // Setup
+        // Run the test
+        final Map<ByteArray, Long> result = seg.parseIndexFile();
 
-		assertTrue(result.containsKey(new ByteArray("t")));
-		assertEquals(0L, result.get(new ByteArray("t")));
-	}
+        assertTrue(result.containsKey(new ByteArray("t")));
+        assertEquals(0L, result.get(new ByteArray("t")));
+    }
 
-	@Test
-	static void testAppendData() throws Exception {
-		// Setup
-		final RandomAccessFile dataFile = new RandomAccessFile(seg.getDataFile(), "r");
+    @Test
+    static void testAppendData() throws Exception {
+        // Setup
+        final RandomAccessFile dataFile = new RandomAccessFile(seg.getDataFile(), "r");
 
-		// Run the test
-		// final long result = FileIO.appendData(dataFile, "t".getBytes(), Record.KEY);
+        // Run the test
+        // final long result = FileIO.appendData(dataFile, "t".getBytes(), Record.KEY);
 
-		assertThrows(IOException.class, () -> seg.appendData(dataFile, "t".getBytes()));
-		// Verify the results
-		// assertEquals(0L, result);
+        assertThrows(IOException.class, () -> seg.appendData(dataFile, "t".getBytes()));
+        // Verify the results
+        // assertEquals(0L, result);
 
-		dataFile.close();
-	}
+        dataFile.close();
+    }
 
-	@Test
-	void testAppendData_ThrowsIOException() throws Exception {
-		// Setup
-		final RandomAccessFile dataFile = new RandomAccessFile("./filename", "r");
+    @Test
+    void testAppendData_ThrowsIOException() throws Exception {
+        // Setup
+        final RandomAccessFile dataFile = new RandomAccessFile("./filename", "r");
 
-		// Run the test
-		assertThrows(IOException.class, () -> seg.appendData(dataFile, "content".getBytes()));
+        // Run the test
+        assertThrows(IOException.class, () -> seg.appendData(dataFile, "content".getBytes()));
 
-		dataFile.close();
-	}
+        dataFile.close();
+    }
 
-	@Test
-	void testReadBytes() throws Exception {
-		// Setup
-		final RandomAccessFile raf = new RandomAccessFile("filename", "r");
+    @Test
+    void testReadBytes() throws Exception {
+        // Setup
+        final RandomAccessFile raf = new RandomAccessFile("filename", "r");
 
-		// Run the test
-		final byte[] result = seg.readBytes(raf, 0L, 1);
-		raf.close();
-		
-		// Verify the results
-		assertArrayEquals(new byte[] { 1 }, result);
-	}
+        // Run the test
+        final byte[] result = seg.readBytes(raf, 0L, 1);
+        raf.close();
 
-	@Test
-	void testReadBytes_ThrowsIOException() throws Exception {
-		// Setup
-		final RandomAccessFile raf = new RandomAccessFile("./filename", "r");
+        // Verify the results
+        assertArrayEquals(new byte[] { 1 }, result);
+    }
 
-		// Run the test
-		assertThrows(FileNotFoundException.class,
-				() -> seg.readBytes(new RandomAccessFile("./filename/123", "r"), 0L, 1));
+    @Test
+    void testReadBytes_ThrowsIOException() throws Exception {
+        // Setup
+        final RandomAccessFile raf = new RandomAccessFile("./filename", "r");
 
-		raf.close();
-	}
+        // Run the test
+        assertThrows(FileNotFoundException.class,
+                () -> seg.readBytes(new RandomAccessFile("./filename/123", "r"), 0L, 1));
 
-	@AfterAll
-	static void teardown() throws IOException {
-	}
+        raf.close();
+    }
+
+    @AfterAll
+    static void teardown() throws IOException {
+    }
 
 }

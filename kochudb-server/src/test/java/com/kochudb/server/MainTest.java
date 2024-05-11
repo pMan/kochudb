@@ -11,7 +11,7 @@ class MainTest {
     @Test
     void testMain() throws Exception {
         // Verify the results
-        assertThrows(FileNotFoundException.class, () -> Main.main(new String[]{"non-existing-file"}));
+        assertThrows(FileNotFoundException.class, () -> Main.main(new String[] { "non-existing-file" }));
     }
 
 }

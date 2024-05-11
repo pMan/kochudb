@@ -32,108 +32,108 @@ import com.kochudb.utils.FileUtil;
 
 public class SSTable {
 
-	private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
+    private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
 
-	// where data and index files are stored
-	private static String basePath;
-	
-	/**
-	 * Constructor
-	 * 
-	 * @param dataDirectory data directory
-	 */
-	public SSTable(File dataDirectory) {
-		try {
-			basePath = dataDirectory.getCanonicalPath();
-		} catch (IOException e) {
-			logger.error("Failed to read data dir: {}", dataDirectory);
-			System.exit(K.ERR_NO_DATA_DIR);
-		}
+    // where data and index files are stored
+    private static String basePath;
 
-		LSMTree.markedForDeletion = new ConcurrentLinkedQueue<>();
-		
-		LSMTree.filesToRename = new ArrayList<String>();
-	}
+    /**
+     * Constructor
+     * 
+     * @param dataDirectory data directory
+     */
+    public SSTable(File dataDirectory) {
+        try {
+            basePath = dataDirectory.getCanonicalPath();
+        } catch (IOException e) {
+            logger.error("Failed to read data dir: {}", dataDirectory);
+            System.exit(K.ERR_NO_DATA_DIR);
+        }
 
-	/**
-	 * Search data files for a given key, level by level, starting at level 0
-	 * 
-	 * @param key search key
-	 * @return value for the key
-	 */
-	public ByteArray search(ByteArray key) {
-		int level = 0;
+        LSMTree.markedForDeletion = new ConcurrentLinkedQueue<>();
 
-		// sorted newest first
-		File[] indexFiles = FileUtil.findFiles(basePath, level);
+        LSMTree.filesToRename = new ArrayList<String>();
+    }
 
-		while (indexFiles.length > 0 || level <= K.NUM_LEVELS) {
-			logger.debug("Searching key in level {}", level);
+    /**
+     * Search data files for a given key, level by level, starting at level 0
+     * 
+     * @param key search key
+     * @return value for the key
+     */
+    public ByteArray search(ByteArray key) {
+        int level = 0;
 
-			for (File indexFile : indexFiles) {
-				if (LSMTree.markedForDeletion.contains(indexFile))
-					continue;
+        // sorted newest first
+        File[] indexFiles = FileUtil.findFiles(basePath, level);
 
-				try {
-					Segment segment = new Segment(level, indexFile.getAbsolutePath());
-					Map<ByteArray, Long> curIndex = segment.parseIndexFile();
+        while (indexFiles.length > 0 || level <= K.NUM_LEVELS) {
+            logger.debug("Searching key in level {}", level);
 
-					if (curIndex.containsKey(key)) {
-						KeyValuePair record = segment.readKVPair(curIndex.get(key));
-						return record.value();
-					}
-				} catch (IOException e) {
-					logger.warn("Error reading data: {}", e.getMessage());
-					e.printStackTrace();
-					return new ByteArray();
-				}
-			}
-			level++;
-			indexFiles = FileUtil.findFiles(basePath, level);
-		}
-		logger.debug("Key not found");
-		return new ByteArray();
-	}
+            for (File indexFile : indexFiles) {
+                if (LSMTree.markedForDeletion.contains(indexFile))
+                    continue;
 
+                try {
+                    Segment segment = new Segment(level, indexFile.getAbsolutePath());
+                    Map<ByteArray, Long> curIndex = segment.parseIndexFile();
 
-	/**
-	 * compute max file size in the given level
-	 * @param level
-	 * @return
-	 */
-	private long computeMaxFileSizeInLevel(int level) {
-		if (level > 0)
-			return computeMaxFileSizeInLevel(level - 1) * LEVEL_MAX_SIZE_MULTIPLIER;
-		return 1024 * LEVEL_ZERO_FILE_MAX_SIZE_KB; // 4 kb;
-	}
-	
-	/**
-	 * get the most recent segment at the given level
-	 * 
-	 * @param level
-	 * @return
-	 */
-	public static Segment getMostRecentSegment(int level) {
-		File[] files = FileUtil.findFiles(basePath, level);
-		if (files.length == 0)
-			return createNewSegment(level);
-		
-		File mostRecent = files[files.length - 1];
-		return new Segment(level, mostRecent.getAbsolutePath());
-	}
-	
-	/**
-	 * create a segment file at given level
-	 * 
-	 * @param level
-	 * @return
-	 */
-	public static Segment createNewSegment(int level) {
-    	String[] newFileNames = FileUtil.createNewIdxAndDataFilenames(level);
-    	if (level > 0)
-    		newFileNames[0] = newFileNames[0].replaceFirst(".idx$", ".idxtmp");
+                    if (curIndex.containsKey(key)) {
+                        KeyValuePair record = segment.readKVPair(curIndex.get(key));
+                        return record.value();
+                    }
+                } catch (IOException e) {
+                    logger.warn("Error reading data: {}", e.getMessage());
+                    e.printStackTrace();
+                    return new ByteArray();
+                }
+            }
+            level++;
+            indexFiles = FileUtil.findFiles(basePath, level);
+        }
+        logger.debug("Key not found");
+        return new ByteArray();
+    }
 
-    	return new Segment(level, newFileNames[0], newFileNames[1]);
+    /**
+     * compute max file size in the given level
+     * 
+     * @param level
+     * @return
+     */
+    private long computeMaxFileSizeInLevel(int level) {
+        if (level > 0)
+            return computeMaxFileSizeInLevel(level - 1) * LEVEL_MAX_SIZE_MULTIPLIER;
+        return 1024 * LEVEL_ZERO_FILE_MAX_SIZE_KB; // 4 kb;
+    }
 
-	}
+    /**
+     * get the most recent segment at the given level
+     * 
+     * @param level
+     * @return
+     */
+    public static Segment getMostRecentSegment(int level) {
+        File[] files = FileUtil.findFiles(basePath, level);
+        if (files.length == 0)
+            return createNewSegment(level);
+
+        File mostRecent = files[files.length - 1];
+        return new Segment(level, mostRecent.getAbsolutePath());
+    }
+
+    /**
+     * create a segment file at given level
+     * 
+     * @param level
+     * @return
+     */
+    public static Segment createNewSegment(int level) {
+        String[] newFileNames = FileUtil.createNewIdxAndDataFilenames(level);
+        if (level > 0)
+            newFileNames[0] = newFileNames[0].replaceFirst(".idx$", ".idxtmp");
+
+        return new Segment(level, newFileNames[0], newFileNames[1]);
+
+    }
 }

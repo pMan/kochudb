@@ -3,8 +3,9 @@ package com.kochudb.utils;
 public final class ByteUtil {
 
     /**
-     * convert a byte[] to int.
-     * This function does not expect a byte[] longer that 4 bytes
+     * convert a byte[] to int. This function does not expect a byte[] longer that 4
+     * bytes
+     * 
      * @param b byte[]
      * @return int
      */
@@ -21,14 +22,14 @@ public final class ByteUtil {
      * Convert an int to byte[] of len 1 or 4
      * 
      * @param resultLen length of result array
-     * @param in integer
+     * @param in        integer
      * @return byte[]
      */
     public static byte[] intToBytes(int resultLen, int in) {
         byte[] bytes = new byte[resultLen];
         for (int i = 0; i < resultLen; i++) {
             int cur = resultLen - i - 1;
-            bytes[i] = (byte)((in & 0xFF) >> (cur * 8));
+            bytes[i] = (byte) ((in & 0xFF) >> (cur * 8));
         }
         return bytes;
     }

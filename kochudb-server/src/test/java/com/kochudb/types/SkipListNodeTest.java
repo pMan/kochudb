@@ -17,7 +17,7 @@ import com.kochudb.storage.SkipListNode;
 class SkipListNodeTest {
 
     SkipListNode node;
-    
+
     @BeforeAll
     public void setUpBeforeAll() {
         node = new SkipListNode(new ByteArray("Key".getBytes()), new ByteArray("Value".getBytes()));
@@ -25,17 +25,18 @@ class SkipListNodeTest {
     }
 
     @BeforeEach
-    void setUp() throws Exception {}
+    void setUp() throws Exception {
+    }
 
     @Test
     void test() {
-        
+
         assertTrue(new ByteArray("Key".getBytes()).compareTo(node.getKey()) == 0);
-        
+
         assertArrayEquals("Value".getBytes(), node.getValue().serialize());
-        
+
         assertNull(node.down);
-        
+
         assertNotNull(node.right);
     }
 

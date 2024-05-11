@@ -18,13 +18,13 @@ class LSMTreeTest {
 
     static LSMTree lsmt;
     static Properties props = new Properties();
-    
+
     @BeforeAll
     static void testLSMTree() {
         try {
             props.put("data.dir", "data-test");
             LSMTreeTest.lsmt = new LSMTree(props);
-            
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -40,13 +40,14 @@ class LSMTreeTest {
         ByteArray key = new ByteArray("Key".getBytes());
         ByteArray val = new ByteArray("Val".getBytes());
         byte[] result = LSMTreeTest.lsmt.set(key, val);
-        
+
         assertEquals("ok", new String(result, "utf-8"));
         assertEquals("Val", new String(LSMTreeTest.lsmt.get(key).serialize(), "utf-8"));
     }
-    
+
     @Test
     void testGetNonExistingKey() throws UnsupportedEncodingException {
-        //assertEquals("", new String(LSMTreeTest.lsmt.get(new ByteArray("non-existing-key")), "utf-8"));
+        // assertEquals("", new String(LSMTreeTest.lsmt.get(new
+        // ByteArray("non-existing-key")), "utf-8"));
     }
 }

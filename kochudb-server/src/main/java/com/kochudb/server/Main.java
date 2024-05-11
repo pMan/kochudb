@@ -47,15 +47,15 @@ public class Main {
         KochuDBServer kochuDBServer = new KochuDBServer(prop);
 
         logger.info("Register shutdown hook");
-        
+
         Runtime.getRuntime().addShutdownHook(new Thread() {
             public void run() {
                 try {
-                	kochuDBServer.terminate();
+                    kochuDBServer.terminate();
                     kochuDBServer.join();
                 } catch (InterruptedException | IOException e) {
-					e.printStackTrace();
-					System.out.println(e.getMessage());
+                    e.printStackTrace();
+                    System.out.println(e.getMessage());
                 }
             }
         });

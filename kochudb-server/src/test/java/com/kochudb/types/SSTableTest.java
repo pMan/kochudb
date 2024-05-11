@@ -26,8 +26,8 @@ class SSTableTest {
         // Run the test
         final ByteArray result = ssTableUnderTest.search(key);
 
-        //assertNull(ssTableUnderTest.search(key));
+        // assertNull(ssTableUnderTest.search(key));
         // Verify the results
-        assertArrayEquals(new byte[]{}, result.serialize());
+        assertArrayEquals(new byte[] {}, result.serialize());
     }
 }

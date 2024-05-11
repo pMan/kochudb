@@ -16,7 +16,7 @@ class LevelCompactorTest {
     @BeforeEach
     void setUp() {
         File f = new File("test-dir");
-        levelCompactorUnderTest = new LevelCompactor(f, null);
+        levelCompactorUnderTest = new LevelCompactor(f);
     }
 
     @Test

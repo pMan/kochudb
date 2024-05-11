@@ -1,6 +1,7 @@
 package com.kochudb.storage;
 
 import static com.kochudb.k.K.LEVEL_ZERO_FILE_MAX_SIZE_KB;
+import static com.kochudb.k.K.NUM_LEVELS;
 import static com.kochudb.k.K.VALUE_MAX_SIZE;
 
 import java.io.File;
@@ -21,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.kochudb.k.K;
 import com.kochudb.server.KVStorage;
 import com.kochudb.tasks.LevelCompactor;
 import com.kochudb.tasks.MemTableFlusher;
@@ -45,8 +45,7 @@ public class LSMTree implements KVStorage<ByteArray, ByteArray> {
     Deque<SkipList> memTableQueue;
 
     /**
-     * Size in bytes
-     * Threshold for triggering flushing of currently active skiplist
+     * Size in bytes Threshold for triggering flushing of currently active skiplist
      */
     Integer maxSkipListSize = LEVEL_ZERO_FILE_MAX_SIZE_KB * 1024; // 4 kb
 
@@ -63,14 +62,14 @@ public class LSMTree implements KVStorage<ByteArray, ByteArray> {
     ScheduledThreadPoolExecutor compactorExecutor;
 
     public static File dataDir;
-    
-	// files marked for deletion during a compaction process
-	public static Queue<File> markedForDeletion;
 
-	public static List<String> filesToRename;
-	
-	List<Level> levels;
-	
+    // files marked for deletion during a compaction process
+    public static Queue<File> markedForDeletion;
+
+    public static List<String> filesToRename;
+
+    public static List<Level> levels;
+
     /**
      * Base class that takes care of all LSM Tree operations, including compaction
      * and indexing.
@@ -85,29 +84,30 @@ public class LSMTree implements KVStorage<ByteArray, ByteArray> {
         }
 
         curSkipListSize = 0;
+        filesToRename = new ArrayList<String>();
 
         /*
          * search thread and memTable-flush thread can perform one or both of the below
-         * operations concurrently: iterate the queue holding skiplists, or iterate the skiplist
+         * operations concurrently: iterate the queue holding skiplists, or iterate the
+         * skiplist
          */
         memTableQueue = new ConcurrentLinkedDeque<>();
-        
         memTable = new SkipList();
-        
+
         levels = new ArrayList<Level>();
-        for (int i = 0; i < K.NUM_LEVELS; i++) {
-        	levels.add(new Level(i, this));
+        for (int level = 0; level < NUM_LEVELS; level++) {
+            levels.add(new Level(level));
         }
-        
+
         memTableExecutor = Executors.newSingleThreadExecutor((runnable) -> {
             return new Thread(runnable, "memtable-flusher");
         });
-        
+
         compactorExecutor = new ScheduledThreadPoolExecutor(1, (runnable) -> {
             return new Thread(runnable, "compactor");
         });
-        
-        compactorExecutor.scheduleWithFixedDelay(new LevelCompactor(dataDir, this), 5, 5, TimeUnit.SECONDS);
+
+        compactorExecutor.scheduleWithFixedDelay(new LevelCompactor(dataDir), 5, 5, TimeUnit.SECONDS);
     }
 
     /**
@@ -133,19 +133,19 @@ public class LSMTree implements KVStorage<ByteArray, ByteArray> {
         }
 
         logger.debug("Searching key in data files");
-        
-        for (Level level: levels) {
-        	ByteArray val;
-			try {
-				val = level.search(key);
-			} catch (IOException e) {
-				e.printStackTrace();
-				logger.error("Search failed with error: {}", e.getMessage());
-				val = new ByteArray();
-				break;
-			}
-        	if (val != null)
-        		return val;
+
+        for (Level level : levels) {
+            ByteArray val;
+            try {
+                val = level.search(key);
+            } catch (IOException e) {
+                e.printStackTrace();
+                logger.error("Search failed with error: {}", e.getMessage());
+                val = new ByteArray();
+                break;
+            }
+            if (val != null)
+                return val;
         }
         return new ByteArray();
     }
@@ -156,32 +156,32 @@ public class LSMTree implements KVStorage<ByteArray, ByteArray> {
      * is restricted to 4MB
      */
     @Override
-	public byte[] set(ByteArray key, ByteArray val) {
-		if (curSkipListSize >= maxSkipListSize) {
-			memTable.writeLock.lock();
-			
-			try {
-				memTableQueue.add(memTable);
-				memTable = new SkipList();
-			} finally {
-				memTableQueue.peekLast().writeLock.unlock();
-			}
-			
-			memTableExecutor.submit(new MemTableFlusher(memTableQueue));
-			curSkipListSize = 0;
-		}
+    public byte[] set(ByteArray key, ByteArray val) {
+        if (curSkipListSize >= maxSkipListSize) {
+            memTable.writeLock.lock();
 
-		if (key.length() > 255)
-			return "Error: Key too long. Max allowed size is 256".getBytes();
+            try {
+                memTableQueue.add(memTable);
+                memTable = new SkipList();
+            } finally {
+                memTableQueue.peekLast().writeLock.unlock();
+            }
 
-		if (val.length() > VALUE_MAX_SIZE)
-			return "Error: Value too long. Max allowed size is 4MB".getBytes();
+            memTableExecutor.submit(new MemTableFlusher(memTableQueue));
+            curSkipListSize = 0;
+        }
 
-		memTable.put(key, val);
-		curSkipListSize += key.length() + val.length();
+        if (key.length() > 255)
+            return "Error: Key too long. Max allowed size is 256".getBytes();
 
-		return "ok".getBytes();
-	}
+        if (val.length() > VALUE_MAX_SIZE)
+            return "Error: Value too long. Max allowed size is 4MB".getBytes();
+
+        memTable.put(key, val);
+        curSkipListSize += key.length() + val.length();
+
+        return "ok".getBytes();
+    }
 
     /**
      * Delete key from data store

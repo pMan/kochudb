@@ -9,7 +9,7 @@ import com.kochudb.types.ByteArray;
  * @param <V> serializable, immutable key
  */
 public interface KVStorage<K extends ByteArray, V extends ByteArray> {
-    
+
     public V get(K key);
 
     public byte[] set(K key, V val);

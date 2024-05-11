@@ -22,105 +22,106 @@ import com.kochudb.storage.Segment;
 
 public class FileUtil {
 
-	private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
+    private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
 
-	/**
-	 * Find all files from the given level, sorted oldest to newest.
-	 * 
-	 * @param dataDirectory parent directory
-	 * @param level         level of LSM Tree
-	 * @return File[] files
-	 */
-	public static File[] findFiles(String dataDirectory, int level) {
-		return findFiles(dataDirectory, level, Comparator.comparingLong(File::lastModified));
-	}
-	
-	public static List<Segment> findSegments(String dataDirectory, int level) {
-		File[] files = findFiles(dataDirectory, level, Comparator.comparingLong(File::lastModified));
-		List<Segment> segments = new LinkedList<Segment>();
-		for (File file: files) {
-			Segment seg = new Segment(level, file.getAbsolutePath(), file.getAbsolutePath().replaceFirst(".idx$", DATA_FILE_EXT));
-			segments.add(seg);
-		}
-		return segments;
-	}
-	
-	/**
-	 * Find all files from the given level, sorted by comparator
-	 * 
-	 * @param dataDirectory directory where files reside
-	 * @param level         level of LSM Tree
-	 * @param comparator    comparator to sort files
-	 * @return File[] files
-	 */
-	public static File[] findFiles(String dataDirectory, int level, Comparator<File> comparator) {
-		File dir = new File(dataDirectory);
+    /**
+     * Find all files from the given level, sorted oldest to newest.
+     * 
+     * @param dataDirectory parent directory
+     * @param level         level of LSM Tree
+     * @return File[] files
+     */
+    public static File[] findFiles(String dataDirectory, int level) {
+        return findFiles(dataDirectory, level, Comparator.comparingLong(File::lastModified));
+    }
 
-		File[] files = dir.listFiles(new FilenameFilter() {
+    public static List<Segment> findSegments(String dataDirectory, int level) {
+        File[] files = findFiles(dataDirectory, level, Comparator.comparingLong(File::lastModified));
+        List<Segment> segments = new LinkedList<Segment>();
+        for (File file : files) {
+            Segment seg = new Segment(level, file.getAbsolutePath(),
+                    file.getAbsolutePath().replaceFirst(".idx$", DATA_FILE_EXT));
+            segments.add(seg);
+        }
+        return segments;
+    }
 
-			@Override
-			public boolean accept(File dir1, String name) {
-				return name.matches("^l" + level + "_[0-9]+\\.[0-9]+\\.idx$");
-			}
-		});
+    /**
+     * Find all files from the given level, sorted by comparator
+     * 
+     * @param dataDirectory directory where files reside
+     * @param level         level of LSM Tree
+     * @param comparator    comparator to sort files
+     * @return File[] files
+     */
+    public static File[] findFiles(String dataDirectory, int level, Comparator<File> comparator) {
+        File dir = new File(dataDirectory);
 
-		Arrays.sort(files, comparator);
-		return files;
-	}
+        File[] files = dir.listFiles(new FilenameFilter() {
 
-	public static RandomAccessFile createDatFromIdx(String idxFile) {
-		RandomAccessFile raf = null;
-		try {
-			raf = new RandomAccessFile(idxFile.replaceFirst(".(idx|idxtmp)$", DATA_FILE_EXT), "r");
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
-		return raf;
-	}
+            @Override
+            public boolean accept(File dir1, String name) {
+                return name.matches("^l" + level + "_[0-9]+\\.[0-9]+\\.idx$");
+            }
+        });
 
-	/**
-	 * create file names for the given level
-	 * 
-	 * @param level
-	 * @return
-	 */
-	public static String[] createNewIdxAndDataFilenames(int level) {
-		String newFilename = FileUtil.generateFilename();
-		String newIdxFilename = newFilename + ".idx";
+        Arrays.sort(files, comparator);
+        return files;
+    }
 
-		File newIdxFile = new File(newIdxFilename.replaceAll("([0-9]+.[0-9]+)(?=.idx)", "l" + level + "_$1"));
-		newIdxFilename = newIdxFile.getAbsolutePath();
-		String newDatFilename = newIdxFile.getAbsolutePath().replace(".idx", DATA_FILE_EXT);
+    public static RandomAccessFile createDatFromIdx(String idxFile) {
+        RandomAccessFile raf = null;
+        try {
+            raf = new RandomAccessFile(idxFile.replaceFirst(".(idx|idxtmp)$", DATA_FILE_EXT), "r");
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        return raf;
+    }
 
-		return new String[] { newIdxFilename, newDatFilename };
-	}
+    /**
+     * create file names for the given level
+     * 
+     * @param level
+     * @return
+     */
+    public static String[] createNewIdxAndDataFilenames(int level) {
+        String newFilename = FileUtil.generateFilename();
+        String newIdxFilename = newFilename + ".idx";
 
-	/**
-	 * rename a temp index file (.idxtmp) to .idx file
-	 * 
-	 * @param toRename absolute file path
-	 * @return absolute file path
-	 */
-	public static String renameIndexFile(String toRename) {
+        File newIdxFile = new File(newIdxFilename.replaceAll("([0-9]+.[0-9]+)(?=.idx)", "l" + level + "_$1"));
+        newIdxFilename = newIdxFile.getAbsolutePath();
+        String newDatFilename = newIdxFile.getAbsolutePath().replace(".idx", DATA_FILE_EXT);
 
-		String newName = toRename.replaceFirst(".idxtmp$", ".idx");
+        return new String[] { newIdxFilename, newDatFilename };
+    }
 
-		if (new File(toRename).renameTo(new File(newName)))
-			logger.debug("Index file renamed to " + newName);
-		else
-			logger.error("Failed to rename inedx file");
+    /**
+     * rename a temp index file (.idxtmp) to .idx file
+     * 
+     * @param toRename absolute file path
+     * @return absolute file path
+     */
+    public static String renameIndexFile(String toRename) {
 
-		return newName;
-	}
+        String newName = toRename.replaceFirst(".idxtmp$", ".idx");
 
-	/**
-	 * Filename generator
-	 *
-	 * @return filename (canonical path) without extension
-	 * @throws IOException
-	 */
-	public static String generateFilename() {
-		Instant instant = Instant.now();
-		return (LSMTree.dataDir.getAbsolutePath()) + "/" + instant.getEpochSecond() + "." + instant.getNano();
-	}
+        if (new File(toRename).renameTo(new File(newName)))
+            logger.debug("Index file renamed to " + newName);
+        else
+            logger.error("Failed to rename inedx file");
+
+        return newName;
+    }
+
+    /**
+     * Filename generator
+     *
+     * @return filename (canonical path) without extension
+     * @throws IOException
+     */
+    public static String generateFilename() {
+        Instant instant = Instant.now();
+        return (LSMTree.dataDir.getAbsolutePath()) + "/" + instant.getEpochSecond() + "." + instant.getNano();
+    }
 }

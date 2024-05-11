@@ -44,7 +44,7 @@ class SkipListTest {
         final ByteArray key = new ByteArray("t");
 
         // Run the test
-        //final SkipListNode result = skipListUnderTest.get(key);
+        // final SkipListNode result = skipListUnderTest.get(key);
 
         assertNull(skipListUnderTest.get(key));
     }
@@ -87,7 +87,7 @@ class SkipListTest {
         assertTrue(result);
         assertFalse(neg);
     }
-    
+
     @Test
     void testIterator() {
         // Setup

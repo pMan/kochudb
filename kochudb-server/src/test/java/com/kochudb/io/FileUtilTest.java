@@ -17,13 +17,13 @@ class FileUtilTest {
     @Test
     void testFindFiles() {
         // Setup
-        final File[] expectedResult = new File[]{new File("filename")};
+        final File[] expectedResult = new File[] { new File("filename") };
 
         // Run the test
         final File[] result = FileUtil.findFiles(".", 0);
 
         // Verify the results
-        //assertArrayEquals(expectedResult, result);
+        // assertArrayEquals(expectedResult, result);
         assertNotEquals(expectedResult, result);
     }
 
@@ -36,12 +36,12 @@ class FileUtilTest {
     @Test
     void testCreateNewIdxAndDataFilenames() {
         assertThrowsExactly(NullPointerException.class, () -> FileUtil.createNewIdxAndDataFilenames(0));
-        //assertEquals(2, files.length);
+        // assertEquals(2, files.length);
     }
 
     @Test
     void testGenerateFilename() {
-        //assertNotEquals("result", FileIO.generateFilename());
+        // assertNotEquals("result", FileIO.generateFilename());
 
         assertThrowsExactly(NullPointerException.class, FileUtil::generateFilename);
     }
