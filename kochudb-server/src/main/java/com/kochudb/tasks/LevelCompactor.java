@@ -16,7 +16,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.kochudb.storage.LSMTree;
 import com.kochudb.storage.Level;
 import com.kochudb.utils.FileUtil;
 
@@ -107,11 +106,9 @@ public class LevelCompactor implements Runnable {
         if (shouldStartCompactionNow(level)) {
             logger.debug("Compaction started. current level: {}", level);
 
-            Level curLevel = new Level(level);
-            curLevel.compactLevel();
+            new Level(level).compactLevel();
 
             logger.trace("Deleting compacted files at level: {}", level);
-
             if (level < NUM_LEVELS)
                 compactLevel(level + 1);
         } else {

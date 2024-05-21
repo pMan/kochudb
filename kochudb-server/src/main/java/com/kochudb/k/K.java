@@ -4,7 +4,9 @@ public final class K {
 
     // props
     public static final String DEFAULT_PORT = "2222";
-    public static final String DEFAULT_POOL_SIZE = "26";
+    
+    // 5 times the available cores
+    public static final String DEFAULT_POOL_SIZE = Integer.toString(5 * Runtime.getRuntime().availableProcessors());
 
     // tree
     public static final int DEFAULT_MEMTABLE_MAX_SIZE = 2;
