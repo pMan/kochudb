@@ -1,10 +1,10 @@
 package com.kochudb.tasks;
 
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.lang.invoke.MethodHandles;
 import java.net.Socket;
-import java.util.concurrent.locks.LockSupport;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -22,15 +22,17 @@ public class Querier implements Runnable {
     private Request req;
     KVStorage<ByteArray, ByteArray> storageEngine;
 
-    public Querier(Socket socket, Request request, KVStorage<ByteArray, ByteArray> storageEngine) {
+    public Querier(Socket socket, KVStorage<ByteArray, ByteArray> storageEngine) throws IOException, ClassNotFoundException {
         this.socket = socket;
-        this.req = request;
+        ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+        this.req = (Request) ois.readObject();
         this.storageEngine = storageEngine;
+        
+        Thread.currentThread().setName("querier");
     }
 
     @Override
     public void run() {
-        Thread.currentThread().setName("querier");
         byte[] response = switch (req.getCommand()) {
         case "get" -> storageEngine.get(new ByteArray(req.getKey())).serialize();
         case "set" -> storageEngine.set(new ByteArray(req.getKey()), new ByteArray(req.getValue()));
@@ -45,19 +47,17 @@ public class Querier implements Runnable {
             oos = new ObjectOutputStream(socket.getOutputStream());
             resp.setData(new String(response, "utf-8"));
             oos.writeObject(resp);
-
+            oos.flush();
         } catch (IOException e) {
             logger.error(e.getMessage());
-            logger.info("Retrying in 500 ns");
-
-            LockSupport.parkNanos(500);
-
             try {
+                Thread.currentThread().wait(100);
                 oos = new ObjectOutputStream(socket.getOutputStream());
                 resp = new Response(req);
                 resp.setData("Some error occurred. " + e.getMessage());
                 oos.writeObject(resp);
-            } catch (IOException retryError) {
+                oos.flush();
+            } catch (IOException | InterruptedException retryError) {
                 retryError.printStackTrace();
             }
         }

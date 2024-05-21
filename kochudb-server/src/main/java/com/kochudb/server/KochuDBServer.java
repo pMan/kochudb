@@ -4,10 +4,8 @@ import static com.kochudb.k.K.DEFAULT_POOL_SIZE;
 import static com.kochudb.k.K.DEFAULT_PORT;
 
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.lang.invoke.MethodHandles;
 import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -15,7 +13,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.kochudb.shared.Request;
 import com.kochudb.storage.LSMTree;
 import com.kochudb.tasks.Querier;
 import com.kochudb.types.ByteArray;
@@ -52,12 +49,7 @@ public class KochuDBServer extends Thread {
     public void listen() {
         while (alive) {
             try {
-                Socket socket = serverSocket.accept();
-                ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-                Request req = (Request) ois.readObject();
-
-                queryPool.submit(new Querier(socket, req, storageEngine));
-
+                queryPool.submit(new Querier(serverSocket.accept(), storageEngine));
             } catch (ClassNotFoundException | IOException e) {
                 if (!alive)
                     logger.info("Server shut down gracefully");

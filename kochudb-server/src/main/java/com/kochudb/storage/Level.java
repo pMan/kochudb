@@ -24,11 +24,23 @@ public class Level {
     private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
 
     private int level;
-
-    private List<Segment> segments = new LinkedList<Segment>();
+    private List<Segment> segments;
+    private PriorityQueue<Object[]> keyValueHeap;
 
     public Level(int level) {
         this.level = level;
+        segments = new LinkedList<Segment>();
+        keyValueHeap = new PriorityQueue<Object[]>((first, second) -> {
+            ByteArray keyFirst = (ByteArray) first[0];
+            ByteArray keySecond = (ByteArray) second[0];
+
+            if (keyFirst.compareTo(keySecond) == 0) {
+                Segment segFirst = (Segment) first[2];
+                Segment segSecond = (Segment) second[2];
+                return segFirst.getIndexFile().compareTo(segSecond.getIndexFile());
+            }
+            return keyFirst.compareTo(keySecond);
+        });
 
         List<File> files = Arrays.asList(FileUtil.findFiles(LSMTree.dataDir.getAbsolutePath(), level));
         for (File file : files)
@@ -63,20 +75,7 @@ public class Level {
      * @throws IOException
      */
     public void compactLevel() throws IOException {
-        PriorityQueue<Object[]> keyValueHeap = new PriorityQueue<Object[]>((first, second) -> {
-            ByteArray keyFirst = (ByteArray) first[0];
-            ByteArray keySecond = (ByteArray) second[0];
-
-            if (keyFirst.compareTo(keySecond) == 0) {
-                Segment segFirst = (Segment) first[2];
-                Segment segSecond = (Segment) second[2];
-                return segFirst.getIndexFile().compareTo(segSecond.getIndexFile());
-            }
-            return keyFirst.compareTo(keySecond);
-        });
-
         // Map<Segment, RandomAccessFile> openedFiles = new HashMap<>();
-
         for (Segment segment : segments) {
             for (Map.Entry<ByteArray, Long> indexData : segment.parseIndexFile().entrySet()) {
                 Object[] objArray = new Object[] { indexData.getKey(), indexData.getValue(), segment };
@@ -85,29 +84,25 @@ public class Level {
             // openedFiles.put(segment, createDatFromIdx(segment.getIndexFile()));
         }
 
-        // Segment newSegment = SSTable.createNewSegment(level + 1);
-        /* Segment newSegment = SSTable.getMostRecentSegment(level + 1); */
-        Level nextLevel = new Level(level + 1);
-        List<Segment> segs = nextLevel.segments;
-        Segment newSegment = segs.isEmpty() ? new Segment(level + 1) : segs.get(segs.size() - 1);
+        Segment newSegment = new Segment(level + 1);
         Map<ByteArray, Long> updatedIdxMap = newSegment.parseIndexFile();
         RandomAccessFile curDataFile = newSegment.openDataFileForWrite();
 
         long curSize = 0, maxFileSizeInLevel = computeMaxFileSizeInLevel(level + 1);
-
         while (!keyValueHeap.isEmpty()) {
             Object[] objArray = keyValueHeap.poll();
-            while (!keyValueHeap.isEmpty()
-                    && ((ByteArray) objArray[0]).compareTo(((ByteArray) keyValueHeap.peek()[0])) == 0)
-                objArray = keyValueHeap.poll();
-
             ByteArray key = (ByteArray) objArray[0];
+            
+            while (!keyValueHeap.isEmpty() && (key).compareTo((ByteArray) keyValueHeap.peek()[0]) == 0) {
+                objArray = keyValueHeap.poll();
+                key = (ByteArray) objArray[0];
+            }
+
             Long offset = (Long) objArray[1];
             Segment segment = (Segment) objArray[2];
 
             byte[] serializedKVPair = segment.readKVPairBytes(offset);
             Long curOffset = newSegment.appendData(curDataFile, serializedKVPair);
-
             updatedIdxMap.put(key, curOffset);
             curSize += serializedKVPair.length;
 
@@ -117,7 +112,6 @@ public class Level {
                 logger.debug("New data file created: {}", newSegment.getDataFile());
 
                 LSMTree.filesToRename.add(newSegment.getIndexFile());
-
                 newSegment = new Segment(level + 1);
                 curDataFile = newSegment.openDataFileForWrite();
 
