@@ -33,7 +33,6 @@ public class LevelCompactor implements Runnable {
     private static volatile AtomicBoolean isRunning;
 
     File dir;
-    // SSTable ssTable;
 
     /**
      * Constructor
