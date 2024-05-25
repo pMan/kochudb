@@ -4,22 +4,17 @@ import static com.kochudb.k.K.DEFAULT_POOL_SIZE;
 import static com.kochudb.k.K.DEFAULT_PORT;
 
 import java.io.IOException;
-import java.lang.invoke.MethodHandles;
 import java.net.ServerSocket;
+import java.net.SocketException;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import com.kochudb.storage.LSMTree;
 import com.kochudb.tasks.Querier;
 import com.kochudb.types.ByteArray;
 
 public class KochuDBServer extends Thread {
-
-    private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
 
     private static ServerSocket serverSocket;
     private KVStorage<ByteArray, ByteArray> storageEngine;
@@ -33,7 +28,7 @@ public class KochuDBServer extends Thread {
         int maxParallelQueries = Integer.parseInt(context.getProperty("query.pool.size", DEFAULT_POOL_SIZE));
 
         serverSocket = new ServerSocket(port);
-        logger.info("Server accepting connections on :{}", port);
+        System.out.println("Server accepting connections on " + port);
 
         storageEngine = new LSMTree(context);
         queryPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(maxParallelQueries);
@@ -51,12 +46,14 @@ public class KochuDBServer extends Thread {
             try {
                 queryPool.submit(new Querier(serverSocket.accept(), storageEngine));
             } catch (ClassNotFoundException | IOException e) {
-                if (!alive)
-                    logger.info("Server shut down gracefully");
+                if (e instanceof SocketException)
+                    System.out.println(e.getMessage());
                 else
-                    System.out.println("Server crashed");
-                break;
+                    System.out.println("Server encountered an error.");
             }
+        }
+        if (!alive) {
+            System.out.println("Server shut down gracefully");
         }
         System.out.println("Bye");
     }
@@ -65,7 +62,7 @@ public class KochuDBServer extends Thread {
     public void terminate() throws IOException {
         alive = false;
         if (serverSocket != null) {
-            logger.info("Attempting clean shut down");
+            System.out.println("Attempting clean shut down");
             serverSocket.close();
         }
     }
