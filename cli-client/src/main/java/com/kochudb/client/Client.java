@@ -49,9 +49,7 @@ public class Client {
                     continue;
                 }
 
-                String[] iData = input.split(" ");
                 Request req = createReq(input);
-
                 socket = new Socket("localhost", 2222);
 
                 ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());

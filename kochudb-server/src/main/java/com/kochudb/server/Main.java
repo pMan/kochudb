@@ -7,25 +7,19 @@ import static com.kochudb.k.K.WELCOME_BANNER;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.lang.invoke.MethodHandles;
 import java.util.Properties;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 /**
  * Main class.
  */
 public class Main {
 
-    private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
-
     static Properties prop;
 
     public static void main(String[] args) throws IOException, FileNotFoundException {
         if (args.length > 1) {
             System.out.println(USAGE_HELP);
-            logger.warn("Invalid arguments");
+            System.out.println("Invalid arguments");
             System.exit(ERR_INVALID_CLI_ARGS);
         }
 
@@ -46,8 +40,6 @@ public class Main {
 
         KochuDBServer kochuDBServer = new KochuDBServer(prop);
 
-        logger.info("Register shutdown hook");
-
         Runtime.getRuntime().addShutdownHook(new Thread() {
             public void run() {
                 try {
@@ -59,6 +51,8 @@ public class Main {
                 }
             }
         });
+
+        System.out.println("Shutdown hook added");
 
         System.out.printf((WELCOME_BANNER) + "%n", prop.getProperty("version", "0.0.0"));
 
