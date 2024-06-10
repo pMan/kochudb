@@ -9,7 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 //import com.kochudb.storage.SSTable;
-import com.kochudb.storage.Segment;
+import com.kochudb.storage.SSTable;
 import com.kochudb.storage.SkipList;
 import com.kochudb.types.ByteArray;
 
@@ -36,9 +36,9 @@ public class MemTableFlusher implements Runnable {
         while (!memTableQueue.isEmpty()) {
             SkipList skipList = memTableQueue.peekFirst();
 
-            Segment segment = new Segment(0);
+            SSTable sSTable = new SSTable(0);
             try {
-                segment.persist(skipList);
+                sSTable.persist(skipList);
                 memTableQueue.remove(skipList);
             } catch (IOException e) {
                 logger.error("memtable flush operation failed");

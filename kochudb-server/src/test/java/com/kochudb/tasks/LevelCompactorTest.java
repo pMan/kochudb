@@ -1,13 +1,11 @@
 package com.kochudb.tasks;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import com.kochudb.storage.SSTable;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.File;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 class LevelCompactorTest {
 
