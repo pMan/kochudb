@@ -40,7 +40,7 @@ public class LSMTree implements KVStorage<ByteArray, ByteArray> {
     SkipList memTable;
 
     /**
-     * Deque of memTables Deque is for handling failures by flushing thread
+     * Deque of memTables is for handling failures by flushing thread
      */
     Deque<SkipList> memTableQueue;
 
@@ -76,13 +76,8 @@ public class LSMTree implements KVStorage<ByteArray, ByteArray> {
      * 
      * @throws IOException IOException
      */
-    public LSMTree(Properties props) throws IOException {
+    public LSMTree(Properties props) {
         dataDir = new File(props.getProperty("data.dir", "data"));
-        if (!dataDir.exists() || !dataDir.isDirectory()) {
-            dataDir.mkdirs();
-            logger.info("Data Directory created");
-        }
-
         curSkipListSize = 0;
         filesToRename = new ArrayList<String>();
 
@@ -93,6 +88,11 @@ public class LSMTree implements KVStorage<ByteArray, ByteArray> {
          */
         memTableQueue = new ConcurrentLinkedDeque<>();
         memTable = new SkipList();
+
+        if (!dataDir.exists() || !dataDir.isDirectory()) {
+            dataDir.mkdirs();
+            logger.info("Data Directory created");
+        }
 
         levels = new ArrayList<Level>();
         for (int level = 0; level < NUM_LEVELS; level++) {
@@ -119,31 +119,15 @@ public class LSMTree implements KVStorage<ByteArray, ByteArray> {
         if (memTable.containsKey(key))
             return memTable.get(key).val;
 
-        logger.trace("Key {} not in memTable", key);
-
         Iterator<SkipList> iter = memTableQueue.descendingIterator();
-
         while (iter.hasNext()) {
             SkipList skiplist = iter.next();
-
-            if (skiplist.containsKey(key)) {
-                logger.trace("Key found in older memTable");
+            if (skiplist.containsKey(key))
                 return skiplist.get(key).val;
-            }
         }
 
-        logger.debug("Searching key in data files");
-
-        for (Level level : levels) {
-            ByteArray val;
-            try {
-                val = level.search(key);
-            } catch (IOException e) {
-                e.printStackTrace();
-                logger.error("Search failed with error: {}", e.getMessage());
-                val = new ByteArray();
-                break;
-            }
+        for (Level level: levels) {
+            ByteArray val = level.search(key);
             if (val != null)
                 return val;
         }

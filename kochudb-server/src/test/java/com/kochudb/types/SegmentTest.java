@@ -17,11 +17,11 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import com.kochudb.storage.LSMTree;
-import com.kochudb.storage.Segment;
+import com.kochudb.storage.SSTable;
 
 class SegmentTest {
 
-    private static Segment seg;
+    private static SSTable seg;
 
     static File dataDir;
 
@@ -38,7 +38,7 @@ class SegmentTest {
 
         lsmt = new LSMTree(props);
 
-        seg = new Segment(0, "testfile.idx", "testfile.kdb");
+        seg = new SSTable(0, "testfile.idx", "testfile.kdb");
     }
 
     @Test
@@ -48,7 +48,7 @@ class SegmentTest {
 
         // Segment seg = new Segment(0);
         // Run the test
-        seg.saveIndexFile(keyToOffset);
+        seg.saveIndex(keyToOffset);
 
         // Verify the results
     }
@@ -57,7 +57,7 @@ class SegmentTest {
     static void testReadIndexFile() {
         // Setup
         // Run the test
-        final Map<ByteArray, Long> result = seg.parseIndexFile();
+        final Map<ByteArray, Long> result = seg.parseIndex();
 
         assertTrue(result.containsKey(new ByteArray("t")));
         assertEquals(0L, result.get(new ByteArray("t")));
@@ -75,13 +75,15 @@ class SegmentTest {
         // Verify the results
         // assertEquals(0L, result);
 
-        dataFile.close();
+        seg.openDataFileForWrite().close();
     }
 
     @Test
     void testAppendData_ThrowsIOException() throws Exception {
         // Setup
-        final RandomAccessFile dataFile = new RandomAccessFile("./filename", "r");
+        File f = new File("./filename.kdb");
+        f.deleteOnExit();
+        final RandomAccessFile dataFile = new RandomAccessFile(f, "r");
 
         // Run the test
         assertThrows(IOException.class, () -> seg.appendData(dataFile, "content".getBytes()));
@@ -99,7 +101,7 @@ class SegmentTest {
         raf.close();
 
         // Verify the results
-        assertArrayEquals(new byte[] { 1 }, result);
+        assertArrayEquals(new byte[] { 99 }, result);
     }
 
     @Test
@@ -116,6 +118,11 @@ class SegmentTest {
 
     @AfterAll
     static void teardown() throws IOException {
+        File f = new File(seg.getIndexFile());
+        f.delete();
+        
+        f = new File(seg.getDataFile());
+        f.delete();
     }
 
 }

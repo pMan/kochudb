@@ -3,7 +3,6 @@ package com.kochudb.storageengine;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Properties;
 
@@ -21,13 +20,8 @@ class LSMTreeTest {
 
     @BeforeAll
     static void testLSMTree() {
-        try {
-            props.put("data.dir", "data-test");
-            LSMTreeTest.lsmt = new LSMTree(props);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        props.put("data.dir", "data-test");
+        LSMTreeTest.lsmt = new LSMTree(props);
     }
 
     @AfterAll

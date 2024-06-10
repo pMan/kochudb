@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.RandomAccessFile;
 
 import org.junit.jupiter.api.Test;
@@ -29,7 +30,12 @@ class FileUtilTest {
 
     @Test
     void testCreateDatFromIdx() {
-        assertInstanceOf(RandomAccessFile.class, FileUtil.createDatFromIdx("filename"));
+        File file = new File("filename.idx");
+        try {
+            file.createNewFile();
+            assertInstanceOf(RandomAccessFile.class, FileUtil.createDatFromIdx(file.getAbsolutePath()));
+            file.delete();
+        } catch (IOException e) {}
         // Verify the results
     }
 

@@ -55,7 +55,6 @@ public class KochuDBServer extends Thread {
         if (!alive) {
             System.out.println("Server shut down gracefully");
         }
-        System.out.println("Bye");
     }
 
     // SIGINT+

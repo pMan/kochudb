@@ -1,139 +1,231 @@
 package com.kochudb.storage;
 
-import static com.kochudb.k.K.LEVEL_MAX_SIZE_MULTIPLIER;
-import static com.kochudb.k.K.LEVEL_ZERO_FILE_MAX_SIZE_KB;
-import static com.kochudb.utils.FileUtil.createDatFromIdx;
+import static com.kochudb.k.K.DATA_FILE_EXT;
+import static com.kochudb.k.K.INDEX_FILE_EXT;
+import static com.kochudb.k.Record.KEY;
+import static com.kochudb.k.Record.VALUE;
+import static com.kochudb.utils.ByteUtil.bytesToInt;
+import static com.kochudb.utils.ByteUtil.bytesToLong;
+import static com.kochudb.utils.ByteUtil.longToBytes;
 
-import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.lang.invoke.MethodHandles;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Map;
-import java.util.PriorityQueue;
 import java.util.TreeMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.kochudb.k.K;
 import com.kochudb.types.ByteArray;
 import com.kochudb.types.KeyValuePair;
 import com.kochudb.utils.FileUtil;
 
-/**
- * MemTable and SSTable operations
- */
-
 public class SSTable {
-
     private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
 
-    // where data and index files are stored
-    private static String basePath;
-
-    /**
-     * Constructor
-     * 
-     * @param dataDirectory data directory
-     */
-    public SSTable(File dataDirectory) {
-        try {
-            basePath = dataDirectory.getCanonicalPath();
-        } catch (IOException e) {
-            logger.error("Failed to read data dir: {}", dataDirectory);
-            System.exit(K.ERR_NO_DATA_DIR);
-        }
-
-        LSMTree.markedForDeletion = new ConcurrentLinkedQueue<>();
-
-        LSMTree.filesToRename = new ArrayList<String>();
+    private int level;
+    private String indexFile, dataFile;
+    private boolean compress = true;
+    
+    public SSTable(int level, String index, String data) {
+        this.level = level;
+        this.indexFile = index;
+        this.dataFile = data;
     }
 
-    /**
-     * Search data files for a given key, level by level, starting at level 0
-     * 
-     * @param key search key
-     * @return value for the key
-     */
-    public ByteArray search(ByteArray key) {
-        int level = 0;
-
-        // sorted newest first
-        File[] indexFiles = FileUtil.findFiles(basePath, level);
-
-        while (indexFiles.length > 0 || level <= K.NUM_LEVELS) {
-            logger.debug("Searching key in level {}", level);
-
-            for (File indexFile : indexFiles) {
-                if (LSMTree.markedForDeletion.contains(indexFile))
-                    continue;
-
-                try {
-                    Segment segment = new Segment(level, indexFile.getAbsolutePath());
-                    Map<ByteArray, Long> curIndex = segment.parseIndexFile();
-
-                    if (curIndex.containsKey(key)) {
-                        KeyValuePair record = segment.readKVPair(curIndex.get(key));
-                        return record.value();
-                    }
-                } catch (IOException e) {
-                    logger.warn("Error reading data: {}", e.getMessage());
-                    e.printStackTrace();
-                    return new ByteArray();
-                }
-            }
-            level++;
-            indexFiles = FileUtil.findFiles(basePath, level);
-        }
-        logger.debug("Key not found");
-        return new ByteArray();
+    public SSTable(int level, String index) {
+        this.level = level;
+        this.indexFile = index;
+        this.dataFile = index.replaceFirst(INDEX_FILE_EXT, DATA_FILE_EXT);
     }
 
-    /**
-     * compute max file size in the given level
-     * 
-     * @param level
-     * @return
-     */
-    private long computeMaxFileSizeInLevel(int level) {
-        if (level > 0)
-            return computeMaxFileSizeInLevel(level - 1) * LEVEL_MAX_SIZE_MULTIPLIER;
-        return 1024 * LEVEL_ZERO_FILE_MAX_SIZE_KB; // 4 kb;
-    }
-
-    /**
-     * get the most recent segment at the given level
-     * 
-     * @param level
-     * @return
-     */
-    public static Segment getMostRecentSegment(int level) {
-        File[] files = FileUtil.findFiles(basePath, level);
-        if (files.length == 0)
-            return createNewSegment(level);
-
-        File mostRecent = files[files.length - 1];
-        return new Segment(level, mostRecent.getAbsolutePath());
-    }
-
-    /**
-     * create a segment file at given level
-     * 
-     * @param level
-     * @return
-     */
-    public static Segment createNewSegment(int level) {
+    public SSTable(int level) {
         String[] newFileNames = FileUtil.createNewIdxAndDataFilenames(level);
         if (level > 0)
             newFileNames[0] = newFileNames[0].replaceFirst(".idx$", ".idxtmp");
 
-        return new Segment(level, newFileNames[0], newFileNames[1]);
+        this.level = level;
+        this.indexFile = newFileNames[0];
+        this.dataFile = newFileNames[1];
+    }
 
+    public String getIndexFile() {
+        return this.indexFile;
+    }
+
+    public String getDataFile() {
+        return this.dataFile;
+    }
+
+    /**
+     * parse index file of this segment into a Map
+     * 
+     * @return map of key and its corresponding offset
+     */
+    public Map<ByteArray, Long> parseIndex() {
+        logger.debug("Reading index file: {}", this.indexFile);
+
+        Map<ByteArray, Long> keyToOffset = new TreeMap<>();
+
+        try (RandomAccessFile raf = new RandomAccessFile(this.indexFile, "r")) {
+            raf.seek(0);
+            while (raf.getFilePointer() < raf.length()) {
+                // key
+                byte[] key = new byte[raf.read()];
+                raf.read(key, 0, key.length);
+
+                // offset where the value resides
+                byte[] nextEightBytes = new byte[Long.BYTES];
+                raf.read(nextEightBytes, 0, Long.BYTES);
+                long offset = bytesToLong(nextEightBytes);
+
+                keyToOffset.put(new ByteArray(key), offset);
+            }
+        } catch (FileNotFoundException e) {
+            return new TreeMap<>();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return keyToOffset;
+    }
+
+    /**
+     * write the given map into index file
+     * 
+     * @param keyToOffset map
+     */
+    public void saveIndex(Map<ByteArray, Long> keyToOffset) {
+        logger.debug("Creating index file: {}", this.indexFile);
+
+        try (RandomAccessFile indexFile = new RandomAccessFile(this.indexFile, "rw")) {
+            indexFile.setLength(0);
+
+            for (Map.Entry<ByteArray, Long> entry : keyToOffset.entrySet()) {
+
+                byte[] keyBytes = entry.getKey().serialize();
+                Long value = entry.getValue();
+
+                byte[] offsetBytes = longToBytes(value);
+                byte[] recWithSize = new byte[keyBytes.length + KEY.length + Long.BYTES];
+
+                recWithSize[0] = (byte) keyBytes.length;
+
+                System.arraycopy(keyBytes, 0, recWithSize, KEY.length, keyBytes.length);
+                System.arraycopy(offsetBytes, 0, recWithSize, KEY.length + keyBytes.length, Long.BYTES);
+
+                indexFile.seek(indexFile.length());
+                indexFile.write(recWithSize);
+            }
+
+            indexFile.getFD().sync();
+            logger.debug("New index file created: {}", this.indexFile);
+        } catch (FileNotFoundException fnfe) {
+            logger.error("File not found: {}", this.indexFile);
+            fnfe.printStackTrace();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * open data file for writing
+     * 
+     * @return opened file
+     * @throws FileNotFoundException
+     */
+    public RandomAccessFile openDataFileForWrite() throws FileNotFoundException {
+        return new RandomAccessFile(this.dataFile, "rw");
+    }
+
+    /**
+     * append byte[] to data file
+     * 
+     * @param raf  data file
+     * @param data bytes to write
+     * @return offset where data was written at
+     * @throws IOException
+     */
+    public long appendData(RandomAccessFile raf, byte[] data) throws IOException {
+        long offset = raf.length();
+        raf.write(data);
+        return offset;
+    }
+
+    /**
+     * read KVPair from the given offset
+     * 
+     * @param offset offset
+     * @return KeyValuePair object
+     * @throws IOException
+     */
+    public KeyValuePair readKVPair(Long offset) {
+        try(RandomAccessFile raf = new RandomAccessFile(dataFile, "r");) {
+            int keyLen = bytesToInt(readBytes(raf, offset, KEY.length));
+            offset += KEY.length;
+
+            byte[] keyData = readBytes(raf, offset, keyLen);
+            offset += keyLen;
+
+            int valLen = bytesToInt(readBytes(raf, offset, VALUE.length));
+            offset += VALUE.length;
+
+            byte[] valueData = readBytes(raf, offset, valLen);
+
+            return KeyValuePair.fromCompressed(keyData, valueData);
+        } catch (FileNotFoundException e) {
+            return new KeyValuePair(new byte[] {}, "File could not be found on the disk".getBytes());
+        } catch (IOException e) {
+            return new KeyValuePair(new byte[] {}, "Error encountered whie reading file".getBytes());
+        }
+    }
+
+    /**
+     * read len bytes from the raf from the offset
+     * 
+     * @param raf    file to read from
+     * @param offset where the data reside
+     * @param len    number of bytes to read
+     * @return bytes
+     * @throws IOException
+     */
+    public byte[] readBytes(RandomAccessFile raf, Long offset, int len) throws IOException {
+        raf.seek(offset);
+        byte[] b = new byte[len];
+        raf.read(b, 0, len);
+        return b;
+    }
+
+    /**
+     * save a skiplist to disk
+     * 
+     * @param skipList skiplist to save
+     * @throws FileNotFoundException
+     * @throws IOException
+     */
+    public void persist(SkipList skipList) throws FileNotFoundException, IOException {
+        Map<ByteArray, Long> keyToOffsetMap = new TreeMap<>();
+        try (RandomAccessFile dataFileObj = new RandomAccessFile(dataFile, "rw")) {
+            Iterator<SkipListNode> iterator = skipList.iterator();
+
+            while (iterator.hasNext()) {
+                SkipListNode node = iterator.next();
+
+                KeyValuePair kvPair = new KeyValuePair(node.getKey().serialize(), node.getValue().serialize());
+                long offset = appendData(dataFileObj, kvPair.serialize());
+
+                keyToOffsetMap.put(node.getKey(), offset);
+            }
+
+            saveIndex(keyToOffsetMap);
+            logger.debug("Data file created: {}", dataFile);
+            logger.debug("Index file created: {}", indexFile);
+
+        } catch (Exception e) {
+            logger.error("Flush failed. {}", e.getMessage());
+            e.printStackTrace();
+        }
     }
 }

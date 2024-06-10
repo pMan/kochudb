@@ -24,19 +24,19 @@ public class Level {
     private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
 
     private int level;
-    private List<Segment> segments;
+    private List<SSTable> sSTables;
     private PriorityQueue<Object[]> keyValueHeap;
 
     public Level(int level) {
         this.level = level;
-        segments = new LinkedList<Segment>();
+        sSTables = new LinkedList<SSTable>();
         keyValueHeap = new PriorityQueue<Object[]>((first, second) -> {
             ByteArray keyFirst = (ByteArray) first[0];
             ByteArray keySecond = (ByteArray) second[0];
 
             if (keyFirst.compareTo(keySecond) == 0) {
-                Segment segFirst = (Segment) first[2];
-                Segment segSecond = (Segment) second[2];
+                SSTable segFirst = (SSTable) first[2];
+                SSTable segSecond = (SSTable) second[2];
                 return segFirst.getIndexFile().compareTo(segSecond.getIndexFile());
             }
             return keyFirst.compareTo(keySecond);
@@ -44,25 +44,25 @@ public class Level {
 
         List<File> files = Arrays.asList(FileUtil.findFiles(LSMTree.dataDir.getAbsolutePath(), level));
         for (File file : files)
-            segments.add(new Segment(level, file.getAbsolutePath()));
+            sSTables.add(new SSTable(level, file.getAbsolutePath()));
     }
 
     public int getLevel() {
         return this.level;
     }
 
-    public List<Segment> getSegments() {
-        return segments;
+    public List<SSTable> getSegments() {
+        return sSTables;
     }
 
-    public ByteArray search(ByteArray key) throws IOException {
-        for (Segment segment : segments) {
+    public ByteArray search(ByteArray key) {
+        for (SSTable sSTable : sSTables) {
             // introduce iterator
-            Map<ByteArray, Long> map = segment.parseIndexFile();
+            Map<ByteArray, Long> map = sSTable.parseIndex();
 
             if (map.containsKey(key)) {
                 Long offset = map.get(key);
-                return segment.readKVPair(offset).value();
+                return sSTable.readKVPair(offset).value();
             }
         }
         return null;
@@ -76,16 +76,16 @@ public class Level {
      */
     public void compactLevel() throws IOException {
         // Map<Segment, RandomAccessFile> openedFiles = new HashMap<>();
-        for (Segment segment : segments) {
-            for (Map.Entry<ByteArray, Long> indexData : segment.parseIndexFile().entrySet()) {
-                Object[] objArray = new Object[] { indexData.getKey(), indexData.getValue(), segment };
+        for (SSTable sSTable : sSTables) {
+            for (Map.Entry<ByteArray, Long> indexData : sSTable.parseIndex().entrySet()) {
+                Object[] objArray = new Object[] { indexData.getKey(), indexData.getValue(), sSTable };
                 keyValueHeap.offer(objArray);
             }
             // openedFiles.put(segment, createDatFromIdx(segment.getIndexFile()));
         }
 
-        Segment newSegment = new Segment(level + 1);
-        Map<ByteArray, Long> updatedIdxMap = newSegment.parseIndexFile();
+        SSTable newSegment = new SSTable(level + 1);
+        Map<ByteArray, Long> updatedIdxMap = newSegment.parseIndex();
         RandomAccessFile curDataFile = newSegment.openDataFileForWrite();
 
         long curSize = 0, maxFileSizeInLevel = computeMaxFileSizeInLevel(level + 1);
@@ -99,20 +99,21 @@ public class Level {
             }
 
             Long offset = (Long) objArray[1];
-            Segment segment = (Segment) objArray[2];
+            SSTable sSTable = (SSTable) objArray[2];
 
-            byte[] serializedKVPair = segment.readKVPairBytes(offset);
+            //byte[] serializedKVPair = sSTable.readKVPairBytes(offset);
+            byte[] serializedKVPair = sSTable.readKVPair(offset).serialize();
             Long curOffset = newSegment.appendData(curDataFile, serializedKVPair);
             updatedIdxMap.put(key, curOffset);
             curSize += serializedKVPair.length;
 
             if (curSize >= maxFileSizeInLevel) {
-                newSegment.saveIndexFile(updatedIdxMap);
+                newSegment.saveIndex(updatedIdxMap);
                 curDataFile.close();
                 logger.debug("New data file created: {}", newSegment.getDataFile());
 
                 LSMTree.filesToRename.add(newSegment.getIndexFile());
-                newSegment = new Segment(level + 1);
+                newSegment = new SSTable(level + 1);
                 curDataFile = newSegment.openDataFileForWrite();
 
                 updatedIdxMap.clear();
@@ -123,11 +124,8 @@ public class Level {
         curDataFile.getFD().sync();
         curDataFile.close();
 
-        // for (RandomAccessFile file : openedFiles.values())
-        // file.close();
-
         if (!updatedIdxMap.isEmpty()) {
-            newSegment.saveIndexFile(updatedIdxMap);
+            newSegment.saveIndex(updatedIdxMap);
             LSMTree.filesToRename.add(newSegment.getIndexFile());
 
             logger.debug("New data file created: {}", newSegment.getIndexFile());
@@ -138,8 +136,8 @@ public class Level {
         deleteCompactedFiles();
     }
 
-    public void insert(Segment segment) {
-        this.segments.add(0, segment);
+    public void insert(SSTable sSTable) {
+        this.sSTables.add(0, sSTable);
     }
 
     private void renameIndexFiles() {
@@ -153,7 +151,7 @@ public class Level {
      * files that are compacted into bigger files are periodically deleted
      */
     private void deleteCompactedFiles() {
-        for (Segment s : segments) {
+        for (SSTable s : sSTables) {
             File datafile = new File(s.getDataFile());
             File indexfile = new File(s.getIndexFile());
 
@@ -170,12 +168,10 @@ public class Level {
         return 1024 * LEVEL_ZERO_FILE_MAX_SIZE_KB; // 4 kb;
     }
 
-    public Segment getLatestSegment(int level) {
-        if (segments.size() == 0)
-            return new Segment(level);
+    public SSTable getLatestSegment(int level) {
+        if (sSTables.size() == 0)
+            return new SSTable(level);
 
-        return segments.get(segments.size() - 1);
-        // File mo6stRecent = files[files.length - 1];
-        // return new Segment(level, mostRecent.getAbsolutePath());
+        return sSTables.get(sSTables.size() - 1);
     }
 }

@@ -18,7 +18,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.kochudb.storage.LSMTree;
-import com.kochudb.storage.Segment;
+import com.kochudb.storage.SSTable;
 
 public class FileUtil {
 
@@ -35,15 +35,15 @@ public class FileUtil {
         return findFiles(dataDirectory, level, Comparator.comparingLong(File::lastModified));
     }
 
-    public static List<Segment> findSegments(String dataDirectory, int level) {
+    public static List<SSTable> findSegments(String dataDirectory, int level) {
         File[] files = findFiles(dataDirectory, level, Comparator.comparingLong(File::lastModified));
-        List<Segment> segments = new LinkedList<Segment>();
+        List<SSTable> sSTables = new LinkedList<SSTable>();
         for (File file : files) {
-            Segment seg = new Segment(level, file.getAbsolutePath(),
+            SSTable seg = new SSTable(level, file.getAbsolutePath(),
                     file.getAbsolutePath().replaceFirst(".idx$", DATA_FILE_EXT));
-            segments.add(seg);
+            sSTables.add(seg);
         }
-        return segments;
+        return sSTables;
     }
 
     /**
@@ -72,7 +72,7 @@ public class FileUtil {
     public static RandomAccessFile createDatFromIdx(String idxFile) {
         RandomAccessFile raf = null;
         try {
-            raf = new RandomAccessFile(idxFile.replaceFirst(".(idx|idxtmp)$", DATA_FILE_EXT), "r");
+            raf = new RandomAccessFile(idxFile.replaceFirst(".(idx|idxtmp)$", DATA_FILE_EXT), "rw");
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
