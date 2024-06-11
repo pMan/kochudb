@@ -10,9 +10,9 @@ import java.io.IOException;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-public record KeyValuePair(ByteArray key, ByteArray value) {
+public record KeyValueRecord(ByteArray key, ByteArray value) {
 
-    public KeyValuePair(byte[] key, byte[] value) {
+    public KeyValueRecord(byte[] key, byte[] value) {
         this(new ByteArray(key), new ByteArray(value));
     }
     
@@ -23,8 +23,8 @@ public record KeyValuePair(ByteArray key, ByteArray value) {
      * @param value compressed value
      * @return this
      */
-    public static KeyValuePair fromCompressed(byte[] key, byte[] value) {
-        return new KeyValuePair(new ByteArray(unzip(key)), new ByteArray(unzip(value)));
+    public static KeyValueRecord fromCompressed(byte[] key, byte[] value) {
+        return new KeyValueRecord(new ByteArray(unzip(key)), new ByteArray(unzip(value)));
     }
 
     /**

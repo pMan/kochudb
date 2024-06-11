@@ -20,7 +20,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.kochudb.types.ByteArray;
-import com.kochudb.types.KeyValuePair;
+import com.kochudb.types.KeyValueRecord;
 import com.kochudb.utils.FileUtil;
 
 public class SSTable {
@@ -161,7 +161,7 @@ public class SSTable {
      * @return KeyValuePair object
      * @throws IOException
      */
-    public KeyValuePair readKVPair(Long offset) {
+    public KeyValueRecord readRecord(Long offset) {
         try(RandomAccessFile raf = new RandomAccessFile(dataFile, "r");) {
             int keyLen = bytesToInt(readBytes(raf, offset, KEY.length));
             offset += KEY.length;
@@ -174,11 +174,11 @@ public class SSTable {
 
             byte[] valueData = readBytes(raf, offset, valLen);
 
-            return KeyValuePair.fromCompressed(keyData, valueData);
+            return KeyValueRecord.fromCompressed(keyData, valueData);
         } catch (FileNotFoundException e) {
-            return new KeyValuePair(new byte[] {}, "File could not be found on the disk".getBytes());
+            return new KeyValueRecord(new byte[] {}, "File could not be found on the disk".getBytes());
         } catch (IOException e) {
-            return new KeyValuePair(new byte[] {}, "Error encountered whie reading file".getBytes());
+            return new KeyValueRecord(new byte[] {}, "Error encountered whie reading file".getBytes());
         }
     }
 
@@ -213,8 +213,8 @@ public class SSTable {
             while (iterator.hasNext()) {
                 SkipListNode node = iterator.next();
 
-                KeyValuePair kvPair = new KeyValuePair(node.getKey().serialize(), node.getValue().serialize());
-                long offset = appendData(dataFileObj, kvPair.serialize());
+                KeyValueRecord redord = new KeyValueRecord(node.getKey().serialize(), node.getValue().serialize());
+                long offset = appendData(dataFileObj, redord.serialize());
 
                 keyToOffsetMap.put(node.getKey(), offset);
             }
