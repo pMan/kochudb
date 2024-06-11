@@ -62,7 +62,7 @@ public class Level {
 
             if (map.containsKey(key)) {
                 Long offset = map.get(key);
-                return sSTable.readKVPair(offset).value();
+                return sSTable.readRecord(offset).value();
             }
         }
         return null;
@@ -102,10 +102,10 @@ public class Level {
             SSTable sSTable = (SSTable) objArray[2];
 
             //byte[] serializedKVPair = sSTable.readKVPairBytes(offset);
-            byte[] serializedKVPair = sSTable.readKVPair(offset).serialize();
-            Long curOffset = newSegment.appendData(curDataFile, serializedKVPair);
+            byte[] serializedRecord = sSTable.readRecord(offset).serialize();
+            Long curOffset = newSegment.appendData(curDataFile, serializedRecord);
             updatedIdxMap.put(key, curOffset);
-            curSize += serializedKVPair.length;
+            curSize += serializedRecord.length;
 
             if (curSize >= maxFileSizeInLevel) {
                 newSegment.saveIndex(updatedIdxMap);
