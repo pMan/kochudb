@@ -37,6 +37,6 @@ class RequestTest {
 
     @Test
     void testToString() {
-        assertEquals("//com key val", requestUnderTest.toString());
+        assertEquals("[key=key, value=val, command=com]", requestUnderTest.toString());
     }
 }

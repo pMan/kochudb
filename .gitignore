@@ -42,6 +42,7 @@ kochudb-server/.classpath
 kochudb-server/.project
 kochudb-server/target
 kochudb-server/data*
+kochudb-server/logs
 kochudb-server/filename
 kochudb-server/qodana.yaml
 kochudb-server/src/main/java/com/kochudb/server/Test.java
