@@ -16,11 +16,6 @@
 		<version>0.0.1</version>
 	</properties>
 
-	<parent>
-		<groupId>com.kochudb.parent</groupId>
-		<artifactId>kochudb</artifactId>
-		<version>0.0.1</version>
-	</parent>
 	<dependencies>
 		<dependency>
 			<groupId>com.kochudb.common</groupId>
@@ -59,12 +54,6 @@
 			<artifactId>mockito-junit-jupiter</artifactId>
 			<version>4.8.1</version>
 			<scope>test</scope>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.xerial.snappy/snappy-java -->
-		<dependency>
-			<groupId>org.xerial.snappy</groupId>
-			<artifactId>snappy-java</artifactId>
-			<version>1.1.10.5</version>
 		</dependency>
 
 	</dependencies>

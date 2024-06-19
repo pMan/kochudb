@@ -16,11 +16,6 @@
         <version>0.0.1</version>
     </properties>
 
-    <parent>
-        <groupId>com.kochudb.parent</groupId>
-        <artifactId>kochudb</artifactId>
-        <version>0.0.1</version>
-    </parent>
     <dependencies>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
@@ -56,26 +51,4 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>3.5.1</version>
-                <executions>
-                  <execution>
-                    <phase>package</phase>
-                  </execution>
-                </executions>
-            </plugin>
-        </plugins>
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-                <filtering>true</filtering>
-            </resource>
-        </resources>
-    </build>
-
 </project>

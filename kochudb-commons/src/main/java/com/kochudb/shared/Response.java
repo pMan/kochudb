@@ -37,6 +37,10 @@ public class Response implements Serializable {
         this.data = data;
     }
 
+    public boolean isEmpty() {
+        return this.data == null;
+    }
+    
     @Override
     public String toString() {
         return "[key=" + key + ", value=" + value + ", command=" + command + ", data=" + data + "]";
