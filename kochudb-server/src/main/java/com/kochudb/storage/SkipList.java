@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
@@ -22,7 +23,8 @@ public class SkipList {
 
     private AtomicInteger maxLevels;
     private int curLevel, length;
-
+    private AtomicLong size;
+    
     private SkipListNode sentinel, head, tail;
 
     public final WriteLock writeLock;
@@ -46,6 +48,7 @@ public class SkipList {
 
         prob = new Random();
         length = 0;
+        size = new AtomicLong(0);
 
         ReentrantReadWriteLock reentrantReadWriteLock = new ReentrantReadWriteLock();
         readLock = reentrantReadWriteLock.readLock();
@@ -149,6 +152,7 @@ public class SkipList {
         }
 
         length++;
+        size.getAndAdd(key.length() + val.length());
     }
 
     /**
@@ -163,6 +167,7 @@ public class SkipList {
         if (found.key != null && found.key.compareTo(key) == 0) {
             found.delete();
             length--;
+            size.getAndAdd(-(key.length() + found.val.length()));
             return true;
         }
         return false;
@@ -175,6 +180,14 @@ public class SkipList {
      */
     public int length() {
         return length;
+    }
+
+    /**
+     * size of all nodes in bytes
+     * @return long
+     */
+    public long size() {
+        return size.get();
     }
 
     /**

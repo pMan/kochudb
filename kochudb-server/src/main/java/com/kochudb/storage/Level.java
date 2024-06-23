@@ -5,7 +5,6 @@ import static com.kochudb.k.K.LEVEL_ZERO_FILE_MAX_SIZE_KB;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.lang.invoke.MethodHandles;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -17,6 +16,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.kochudb.types.ByteArray;
+import com.kochudb.types.KeyValueRecord;
 import com.kochudb.utils.FileUtil;
 
 public class Level {
@@ -55,15 +55,19 @@ public class Level {
         return sSTables;
     }
 
+    /**
+     * search all SSTables in this level
+     * 
+     * @param key
+     * @return ByteArray value
+     */
     public ByteArray search(ByteArray key) {
         for (SSTable sSTable : sSTables) {
-            // introduce iterator
-            Map<ByteArray, Long> map = sSTable.parseIndex();
-
-            if (map.containsKey(key)) {
-                Long offset = map.get(key);
-                return sSTable.readRecord(offset).value();
-            }
+            KeyValueRecord record = sSTable.search(key);
+            if (record == null)
+                continue;
+            
+            return record.value();
         }
         return null;
     }
@@ -84,11 +88,9 @@ public class Level {
             // openedFiles.put(segment, createDatFromIdx(segment.getIndexFile()));
         }
 
-        SSTable newSegment = new SSTable(level + 1);
-        Map<ByteArray, Long> updatedIdxMap = newSegment.parseIndex();
-        RandomAccessFile curDataFile = newSegment.openDataFileForWrite();
-
-        long curSize = 0, maxFileSizeInLevel = computeMaxFileSizeInLevel(level + 1);
+        SkipList skipList = new SkipList();
+        
+        long maxFileSizeInLevel = computeMaxFileSizeInLevel(level + 1);
         while (!keyValueHeap.isEmpty()) {
             Object[] objArray = keyValueHeap.poll();
             ByteArray key = (ByteArray) objArray[0];
@@ -100,36 +102,27 @@ public class Level {
 
             Long offset = (Long) objArray[1];
             SSTable sSTable = (SSTable) objArray[2];
-
-            //byte[] serializedKVPair = sSTable.readKVPairBytes(offset);
-            byte[] serializedRecord = sSTable.readRecord(offset).serialize();
-            Long curOffset = newSegment.appendData(curDataFile, serializedRecord);
-            updatedIdxMap.put(key, curOffset);
-            curSize += serializedRecord.length;
-
-            if (curSize >= maxFileSizeInLevel) {
-                newSegment.saveIndex(updatedIdxMap);
-                curDataFile.close();
-                logger.debug("New data file created: {}", newSegment.getDataFile());
-
+            
+            KeyValueRecord record = sSTable.readRecord(offset);
+            skipList.put(record.key(), record.value());
+            
+            if (skipList.size() >= maxFileSizeInLevel) {
+                SSTable newSegment = new SSTable(level + 1);
+                newSegment.persist(skipList);
                 LSMTree.filesToRename.add(newSegment.getIndexFile());
-                newSegment = new SSTable(level + 1);
-                curDataFile = newSegment.openDataFileForWrite();
 
-                updatedIdxMap.clear();
-                curSize = 0;
+                logger.debug("New data file created: {}", newSegment.getDataFile());
+                skipList = new SkipList();
             }
-            // f.setLastModified(Instant.now().getEpochSecond() * 1000);
         }
-        curDataFile.getFD().sync();
-        curDataFile.close();
 
-        if (!updatedIdxMap.isEmpty()) {
-            newSegment.saveIndex(updatedIdxMap);
-            LSMTree.filesToRename.add(newSegment.getIndexFile());
+        if (skipList.length() > 0) {
+            SSTable ssTable = new SSTable(level + 1);
+            ssTable.persist(skipList);
+            LSMTree.filesToRename.add(ssTable.getIndexFile());
 
-            logger.debug("New data file created: {}", newSegment.getIndexFile());
-            logger.debug("New index file created: {}", newSegment.getDataFile());
+            logger.debug("New data file created: {}", ssTable.getIndexFile());
+            logger.debug("New index file created: {}", ssTable.getDataFile());
         }
 
         renameIndexFiles();
