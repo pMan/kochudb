@@ -93,6 +93,43 @@ public class SSTable {
     }
 
     /**
+     * search this SSTable segment for a given key
+     * @param searchKey
+     * @return KeyValueRecord
+     */
+    public KeyValueRecord search(ByteArray searchKey) {
+        try (RandomAccessFile raf = new RandomAccessFile(this.indexFile, "r")) {
+            raf.seek(0);
+            while (raf.getFilePointer() < raf.length()) {
+                // key
+                byte[] keyFromFile = new byte[raf.read()];
+                raf.read(keyFromFile, 0, keyFromFile.length);
+                byte[] nextEightBytes = new byte[Long.BYTES];
+                
+                // keyFromFile is smaller than search key
+                if (searchKey.compareTo(new ByteArray(keyFromFile)) > 0) {
+                    raf.read(nextEightBytes, 0, Long.BYTES);
+                    continue;
+                }
+                // both keys are equal
+                if (searchKey.compareTo(new ByteArray(keyFromFile)) == 0) {
+                    raf.read(nextEightBytes, 0, Long.BYTES);
+                    long offset = bytesToLong(nextEightBytes);
+                    
+                    return readRecord(offset);
+                }
+                // keyFromFile is greater than search key
+                break;
+            }
+        } catch (FileNotFoundException e) {
+            logger.error("Index file not found: {}", this.indexFile);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+    
+    /**
      * write the given map into index file
      * 
      * @param keyToOffset map
