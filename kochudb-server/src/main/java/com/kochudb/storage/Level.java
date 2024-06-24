@@ -64,10 +64,9 @@ public class Level {
     public ByteArray search(ByteArray key) {
         for (SSTable sSTable : sSTables) {
             KeyValueRecord record = sSTable.search(key);
-            if (record == null)
-                continue;
-            
-            return record.value();
+            if (record != null) {
+                return record.value();
+            }
         }
         return null;
     }

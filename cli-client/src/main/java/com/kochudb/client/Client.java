@@ -4,20 +4,20 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Set;
 
-import com.kochudb.shared.Request;
-import com.kochudb.shared.Response;
+import com.kochudb.shared.DTO;
 
 public class Client {
     public static boolean alive = true;
 
     private static final Set<String> validInput = new HashSet<>(Arrays.asList("get", "set", "del"));
 
-    private static final String usage = "|| KochuDB client ||\nUsage help:\n\tset <key> <val>\n\tget <key>\n\tdel <key>\n\n";
+    private static final String usage = "<< KochuDB CLI client >>\nUsage help:\n\tset <key> <val>\n\tget <key>\n\tdel <key>\n\n";
 
     static Socket socket = null;
 
@@ -49,17 +49,16 @@ public class Client {
                     continue;
                 }
 
-                Request req = createReq(input);
+                DTO dTO = createReq(input);
                 socket = new Socket("localhost", 2222);
 
                 ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-                oos.writeObject(req);
+                oos.writeObject(dTO);
 
                 ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-                Response res = (Response) ois.readObject();
+                DTO res = (DTO) ois.readObject();
 
-                if (!res.isEmpty())
-                    System.out.println(res.getData());
+                System.out.println(new String(res.response(), StandardCharsets.UTF_8));
 
                 System.out.print("> ");
             } catch (Exception e) {
@@ -77,7 +76,7 @@ public class Client {
 
     }
 
-    static Request createReq(String input) {
+    static DTO createReq(String input) {
         if (input.length() < 3 || input.charAt(3) != ' ')
             throw new IllegalArgumentException("Invalid input");
 
@@ -96,13 +95,13 @@ public class Client {
         if (key == null)
             key = input.substring(3).trim();
 
-        Request req = switch (op) {
-        case "get", "del" -> new Request(op, key, null);
-        case "set" -> new Request(op, key, val);
+        DTO dTO = switch (op) {
+        case "get", "del" -> new DTO(op, key, null);
+        case "set" -> new DTO(op, key, val.getBytes());
         default -> throw new IllegalArgumentException("Unexpected operation: " + op);
         };
 
-        return req;
+        return dTO;
     }
 
 }

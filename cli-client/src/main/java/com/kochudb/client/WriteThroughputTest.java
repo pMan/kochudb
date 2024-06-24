@@ -9,8 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
-import com.kochudb.shared.Request;
-import com.kochudb.shared.Response;
+import com.kochudb.shared.DTO;
 
 // https://math.hws.edu/eck/cs225/s10/lab3
 public class WriteThroughputTest {
@@ -193,22 +192,18 @@ public class WriteThroughputTest {
     }
 
     public static void insert(Map<String, String> map) throws UnknownHostException, IOException, ClassNotFoundException {
-        Request req = new Request();
         Socket socket = null;
         
         for (Map.Entry<String, String> e: map.entrySet()) {
             socket = new Socket("localhost", 2222);
             
-            req.setCommand("set");
-            req.setKey(e.getKey());
-            req.setValue(e.getValue());
-
+            DTO dto = new DTO("set".getBytes(), e.getKey().getBytes(), e.getValue().getBytes());
             ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-            oos.writeObject(req);
+            oos.writeObject(dto);
             oos.flush();
             
             ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-            Response res = (Response) ois.readObject();
+            DTO res = (DTO) ois.readObject();
             //AssertEquals(res.getData(), "ok");
         }
 
