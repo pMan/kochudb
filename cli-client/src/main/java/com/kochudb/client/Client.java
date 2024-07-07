@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -21,7 +22,13 @@ public class Client {
 
     static Socket socket = null;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws UnknownHostException, ClassNotFoundException, IOException {
+        // load test data
+        if (args.length == 1 && "load".equals(args[0])) {
+            WriteThroughputTest.main(args);
+            return;
+        }
+        
         Runtime.getRuntime().addShutdownHook(new Thread() {
             public void run() {
                 alive = false;
@@ -95,13 +102,13 @@ public class Client {
         if (key == null)
             key = input.substring(3).trim();
 
-        DTO dTO = switch (op) {
+        DTO dto = switch (op) {
         case "get", "del" -> new DTO(op, key, null);
         case "set" -> new DTO(op, key, val.getBytes());
         default -> throw new IllegalArgumentException("Unexpected operation: " + op);
         };
 
-        return dTO;
+        return dto;
     }
 
 }

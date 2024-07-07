@@ -32,6 +32,7 @@ public final class K {
     // error codes
     public static final int ERR_INVALID_CLI_ARGS = 1;
     public static final int ERR_NO_DATA_DIR = 2;
+    public static final int ERR_QUERIER = 3;
 
     // CLI
     public static final String USAGE_HELP = "" + "Invalid number of arguments\r\n\r\n" + "Correct usage:\r\n\t"

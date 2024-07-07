@@ -6,8 +6,12 @@ import static com.kochudb.k.K.DEFAULT_PORT;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.SocketException;
+import java.util.LinkedList;
 import java.util.Properties;
+import java.util.Queue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import com.kochudb.storage.LSMTree;
@@ -20,6 +24,7 @@ public class KochuDBServer extends Thread {
     private KVStorage<ByteArray, ByteArray> storageEngine;
     private ThreadPoolExecutor queryPool;
     private static boolean alive;
+    private Queue<Future<Boolean>> queryResults;
 
     public KochuDBServer(Properties context) throws IOException {
         setName("front-end");
@@ -32,6 +37,7 @@ public class KochuDBServer extends Thread {
 
         storageEngine = new LSMTree(context);
         queryPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(maxParallelQueries);
+        queryResults = new LinkedList<Future<Boolean>>();
 
         alive = true;
     }
@@ -44,15 +50,33 @@ public class KochuDBServer extends Thread {
     public void listen() {
         while (alive) {
             try {
-                queryPool.submit(new Querier(serverSocket.accept(), storageEngine));
-            } catch (ClassNotFoundException | IOException e) {
-                if (e instanceof SocketException)
-                    System.out.println(e.getMessage());
-                else
-                    System.out.println("Server encountered an error.");
+                Future<Boolean> future = queryPool.submit(new Querier(serverSocket.accept(), storageEngine));
+                queryResults.offer(future);
+            } catch (ClassNotFoundException e) {
+                System.out.println("Server encountered ClassNotFound exception.");
+                e.printStackTrace();
+                alive = false;
+            } catch (IOException e) {
+                System.out.println(e.getMessage());
+                alive = false;
             }
+            
+            // remove all completed futures
+            while (!queryResults.isEmpty() && queryResults.peek().isDone())
+                queryResults.poll();
         }
         if (!alive) {
+            // wait for all running queries to complete
+            while (!queryResults.isEmpty()) {
+                try {
+                    queryResults.poll().get();
+                } catch (InterruptedException | ExecutionException e) {
+                    e.printStackTrace();
+                    
+                    if (e instanceof InterruptedException)
+                        Thread.currentThread().interrupt();
+                }
+            }
             System.out.println("Server shut down gracefully");
         }
     }
