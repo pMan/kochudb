@@ -61,7 +61,17 @@ Usage help:
         del <key>
 
 > Type "bye" to exit
-> _
+>
+> get rafting
+this is the house that Jack built and this is the judge that kept the maiden sowing his corn that tossed the house that Jack built
+>
+> set key1 value1
+ok
+>
+> bye
+Client closed
+
+Shutting down client
 ```
 ## Possible improvements
 * __Bloomfilter__ - for lookup optimization
