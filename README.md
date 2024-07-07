@@ -35,19 +35,43 @@ Implemented based on Log-Structured Merge (LSM) tree.
 Use the shell scripts (`build-all.sh`, `start-server.sh`, `start-client.sh` in that order) on Unix systems, or run manually by using below commands.
 #### Clone and build kochudb
 ```
-git clone https://github.com/pMan/kochudb.git
-cd kochudb
-mvn clean package -DskipTests
+> git clone https://github.com/pMan/kochudb.git
+> cd kochudb
+> mvn clean package -DskipTests
 ```
 #### Run server
 ```
-cd kochudb-server
-java -jar target/kochudb-server*.jar
+> cd kochudb-server
+> java -jar target/kochudb-server*.jar
 ```
 
-#### Run cli client
+
+#### Load test data
 ```
-java -jar cli-client/target/cli-client*.jar
+> java -jar cli-client/target/cli-client*.jar load
+```
+
+#### Run interative cli client
+```
+> java -jar cli-client/target/cli-client*.jar
+<< KochuDB CLI client >>
+Usage help:
+        set <key> <val>
+        get <key>
+        del <key>
+
+> Type "bye" to exit
+>
+> get rafting
+this is the house that Jack built and this is the judge that kept the maiden sowing his corn that tossed the house that Jack built
+>
+> set key1 value1
+ok
+>
+> bye
+Client closed
+
+Shutting down client
 ```
 ## Possible improvements
 * __Bloomfilter__ - for lookup optimization

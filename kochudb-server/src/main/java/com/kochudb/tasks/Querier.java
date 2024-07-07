@@ -6,6 +6,7 @@ import java.io.ObjectOutputStream;
 import java.lang.invoke.MethodHandles;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.Callable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -14,45 +15,47 @@ import com.kochudb.server.KVStorage;
 import com.kochudb.shared.DTO;
 import com.kochudb.types.ByteArray;
 
-public class Querier implements Runnable {
+public class Querier implements Callable<Boolean> {
 
     private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
 
     private Socket socket;
-    private DTO dTO;
+    private DTO dto;
     KVStorage<ByteArray, ByteArray> storageEngine;
 
     public Querier(Socket socket, KVStorage<ByteArray, ByteArray> storageEngine)
             throws IOException, ClassNotFoundException {
         this.socket = socket;
         ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-        this.dTO = (DTO) ois.readObject();
+        this.dto = (DTO) ois.readObject();
         this.storageEngine = storageEngine;
 
         Thread.currentThread().setName("querier");
     }
 
     @Override
-    public void run() {
-        String command = new String(dTO.command(), StandardCharsets.UTF_8);
+    public Boolean call() {
+        String command = new String(dto.command(), StandardCharsets.UTF_8);
         byte[] response = switch (command) {
-        case "get" -> storageEngine.get(new ByteArray(dTO.key())).serialize();
-        case "set" -> storageEngine.set(new ByteArray(dTO.key()), new ByteArray(dTO.value()));
-        case "del" -> storageEngine.del(new ByteArray(dTO.key()));
+        case "get" -> storageEngine.get(new ByteArray(dto.key())).serialize();
+        case "set" -> storageEngine.set(new ByteArray(dto.key()), new ByteArray(dto.value()));
+        case "del" -> storageEngine.del(new ByteArray(dto.key()));
         default -> "Invalid Operation".getBytes();
         };
 
+        // add WAL here, serialize DTO
         ObjectOutputStream oos;
-        DTO resp = new DTO(dTO.command(), dTO.key(), dTO.value(), response);
+        DTO resp = new DTO(dto.command(), dto.key(), dto.value(), response);
 
         try {
             oos = new ObjectOutputStream(socket.getOutputStream());
-            // resp.setData(new String(response, "utf-8"));
             oos.writeObject(resp);
             oos.flush();
         } catch (IOException e) {
             logger.error(e.getMessage());
+            return false;
         }
+        return true;
     }
 
 }
