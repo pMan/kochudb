@@ -28,8 +28,7 @@ public class SSTable {
 
     private int level;
     private String indexFile, dataFile;
-    private boolean compress = true;
-    
+
     public SSTable(int level, String index, String data) {
         this.level = level;
         this.indexFile = index;
@@ -69,6 +68,7 @@ public class SSTable {
         logger.debug("Reading index file: {}", this.indexFile);
 
         Map<ByteArray, Long> keyToOffset = new TreeMap<>();
+        // SkipList skipList = new SkipList();
 
         try (RandomAccessFile raf = new RandomAccessFile(this.indexFile, "r")) {
             raf.seek(0);
@@ -83,6 +83,7 @@ public class SSTable {
                 long offset = bytesToLong(nextEightBytes);
 
                 keyToOffset.put(new ByteArray(key), offset);
+                // skipList.put(new ByteArray(key), new ByteArray(nextEightBytes));
             }
         } catch (FileNotFoundException e) {
             return new TreeMap<>();
@@ -94,6 +95,7 @@ public class SSTable {
 
     /**
      * search this SSTable segment for a given key
+     * 
      * @param searchKey
      * @return KeyValueRecord
      */
@@ -105,7 +107,7 @@ public class SSTable {
                 byte[] keyFromFile = new byte[raf.read()];
                 raf.read(keyFromFile, 0, keyFromFile.length);
                 byte[] nextEightBytes = new byte[Long.BYTES];
-                
+
                 // keyFromFile is smaller than search key
                 if (searchKey.compareTo(new ByteArray(keyFromFile)) > 0) {
                     raf.read(nextEightBytes, 0, Long.BYTES);
@@ -115,7 +117,7 @@ public class SSTable {
                 if (searchKey.compareTo(new ByteArray(keyFromFile)) == 0) {
                     raf.read(nextEightBytes, 0, Long.BYTES);
                     long offset = bytesToLong(nextEightBytes);
-                    
+
                     return readRecord(offset);
                 }
                 // keyFromFile is greater than search key
@@ -128,7 +130,7 @@ public class SSTable {
         }
         return null;
     }
-    
+
     /**
      * write the given map into index file
      * 
@@ -199,7 +201,7 @@ public class SSTable {
      * @throws IOException
      */
     public KeyValueRecord readRecord(Long offset) {
-        try(RandomAccessFile raf = new RandomAccessFile(dataFile, "r");) {
+        try (RandomAccessFile raf = new RandomAccessFile(dataFile, "r");) {
             int keyLen = bytesToInt(readBytes(raf, offset, KEY.length));
             offset += KEY.length;
 
@@ -242,18 +244,18 @@ public class SSTable {
      * @throws FileNotFoundException
      * @throws IOException
      */
-    public void persist(SkipList skipList) throws FileNotFoundException, IOException {
+    public void persist(SkipList<ByteArray, ByteArray> skipList) throws FileNotFoundException, IOException {
         Map<ByteArray, Long> keyToOffsetMap = new TreeMap<>();
         try (RandomAccessFile dataFileObj = new RandomAccessFile(dataFile, "rw")) {
-            Iterator<SkipListNode> iterator = skipList.iterator();
+            Iterator<SkipListNode<ByteArray, ByteArray>> iterator = skipList.iterator();
 
             while (iterator.hasNext()) {
-                SkipListNode node = iterator.next();
+                SkipListNode<ByteArray, ByteArray> node = iterator.next();
 
                 KeyValueRecord redord = new KeyValueRecord(node.getKey().serialize(), node.getValue().serialize());
                 long offset = appendData(dataFileObj, redord.serialize());
 
-                keyToOffsetMap.put(node.getKey(), offset);
+                keyToOffsetMap.put((ByteArray) node.getKey(), offset);
             }
 
             saveIndex(keyToOffsetMap);

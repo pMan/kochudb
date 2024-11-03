@@ -37,12 +37,12 @@ public class LSMTree implements KVStorage<ByteArray, ByteArray> {
     /**
      * SkipList for in-memory data
      */
-    SkipList memTable;
+    SkipList<ByteArray, ByteArray> memTable;
 
     /**
      * Deque of memTables is for handling failures by flushing thread
      */
-    Deque<SkipList> memTableQueue;
+    Deque<SkipList<ByteArray, ByteArray>> memTableQueue;
 
     /**
      * Size in bytes Threshold for triggering flushing of currently active skiplist
@@ -87,7 +87,7 @@ public class LSMTree implements KVStorage<ByteArray, ByteArray> {
          * skiplist
          */
         memTableQueue = new ConcurrentLinkedDeque<>();
-        memTable = new SkipList();
+        memTable = new SkipList<ByteArray, ByteArray>();
 
         if (!dataDir.exists() || !dataDir.isDirectory()) {
             dataDir.mkdirs();
@@ -117,16 +117,16 @@ public class LSMTree implements KVStorage<ByteArray, ByteArray> {
     @Override
     public ByteArray get(ByteArray key) {
         if (memTable.containsKey(key))
-            return memTable.get(key).val;
+            return (ByteArray) memTable.get(key).val;
 
-        Iterator<SkipList> iter = memTableQueue.descendingIterator();
+        Iterator<SkipList<ByteArray, ByteArray>> iter = memTableQueue.descendingIterator();
         while (iter.hasNext()) {
-            SkipList skiplist = iter.next();
+            SkipList<ByteArray, ByteArray> skiplist = iter.next();
             if (skiplist.containsKey(key))
-                return skiplist.get(key).val;
+                return (ByteArray) skiplist.get(key).val;
         }
 
-        for (Level level: levels) {
+        for (Level level : levels) {
             ByteArray val = level.search(key);
             if (val != null)
                 return val;
@@ -146,7 +146,7 @@ public class LSMTree implements KVStorage<ByteArray, ByteArray> {
 
             try {
                 memTableQueue.add(memTable);
-                memTable = new SkipList();
+                memTable = new SkipList<ByteArray, ByteArray>();
             } finally {
                 memTableQueue.peekLast().writeLock.unlock();
             }

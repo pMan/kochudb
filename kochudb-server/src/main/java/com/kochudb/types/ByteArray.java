@@ -1,10 +1,11 @@
 package com.kochudb.types;
 
 /**
- * A comparable, serializable, immutable byte[]
+ * A comparable, serializable, immutable byte[] that implements KochuDBSerde
  */
-public class ByteArray implements Comparable<ByteArray> {
+public class ByteArray implements KochuDBSerde<ByteArray> {
 
+    private static final long serialVersionUID = 1L;
     byte[] byteArray;
 
     public ByteArray(String key) {
@@ -19,10 +20,12 @@ public class ByteArray implements Comparable<ByteArray> {
         byteArray = new byte[] {};
     }
 
+    @Override
     public int length() {
         return byteArray.length;
     }
 
+    @Override
     public byte[] serialize() {
         return byteArray;
     }
