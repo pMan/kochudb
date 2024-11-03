@@ -1,19 +1,20 @@
 package com.kochudb.storage;
 
-import com.kochudb.types.ByteArray;
+import com.kochudb.types.KochuDBSerde;
 
 /**
  * Skip list Element
  */
-public class SkipListNode {
+public class SkipListNode<K extends KochuDBSerde<K>, V extends KochuDBSerde<V>> {
 
     // key/value of type ByteArray
-    ByteArray key, val;
+    K key;
+    V val;
 
     public boolean deleted;
 
     // references to all four neighbors
-    public SkipListNode left, right, up, down;
+    public SkipListNode<K, V> left, right, up, down;
 
     /**
      * An element in the SkipList, stores key and value
@@ -21,7 +22,7 @@ public class SkipListNode {
      * @param key key
      * @param val value
      */
-    public SkipListNode(ByteArray key, ByteArray val) {
+    public SkipListNode(K key, V val) {
         this.key = key;
         this.val = val;
 
@@ -32,15 +33,15 @@ public class SkipListNode {
         deleted = false;
     }
 
-    public ByteArray getKey() {
+    public K getKey() {
         return key;
     }
 
-    public ByteArray getValue() {
+    public V getValue() {
         return val;
     }
 
-    public void setValue(ByteArray val) {
+    public void setValue(V val) {
         this.val = val;
     }
 

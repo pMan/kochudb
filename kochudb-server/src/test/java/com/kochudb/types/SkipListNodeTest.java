@@ -16,7 +16,7 @@ import com.kochudb.storage.SkipListNode;
 @TestInstance(Lifecycle.PER_CLASS)
 class SkipListNodeTest {
 
-    SkipListNode node;
+    SkipListNode<ByteArray, ByteArray> node;
 
     @BeforeAll
     public void setUpBeforeAll() {

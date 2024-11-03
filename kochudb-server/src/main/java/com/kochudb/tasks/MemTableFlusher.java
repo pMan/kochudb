@@ -17,12 +17,12 @@ public class MemTableFlusher implements Runnable {
 
     private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
 
-    Deque<SkipList> memTableQueue;
+    Deque<SkipList<ByteArray, ByteArray>> memTableQueue;
 
     // key and the offset where the record is stored in file
     Map<ByteArray, Long> keyToOffsetMap;
 
-    public MemTableFlusher(Deque<SkipList> memTableQueue) {
+    public MemTableFlusher(Deque<SkipList<ByteArray, ByteArray>> memTableQueue) {
         this.memTableQueue = memTableQueue;
     }
 
@@ -34,7 +34,7 @@ public class MemTableFlusher implements Runnable {
     // flush current state of the queue
     private void flush() {
         while (!memTableQueue.isEmpty()) {
-            SkipList skipList = memTableQueue.peekFirst();
+            SkipList<ByteArray, ByteArray> skipList = memTableQueue.peekFirst();
 
             SSTable sSTable = new SSTable(0);
             try {

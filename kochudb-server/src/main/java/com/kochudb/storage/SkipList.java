@@ -10,7 +10,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
-import com.kochudb.types.ByteArray;
+import com.kochudb.types.KochuDBSerde;
 
 /**
  * SkipList is a probabilistic list that offers average O(log n) runtime for
@@ -19,13 +19,13 @@ import com.kochudb.types.ByteArray;
  * This implementation is thread safe. Delete operation is a soft-delete.
  * 
  */
-public class SkipList {
+public class SkipList<K extends KochuDBSerde<K>, V extends KochuDBSerde<V>> {
 
     private AtomicInteger maxLevels;
     private int curLevel, length;
     private AtomicLong size;
-    
-    private SkipListNode sentinel, head, tail;
+
+    private SkipListNode<K, V> sentinel, head, tail;
 
     public final WriteLock writeLock;
     public final ReadLock readLock;
@@ -35,8 +35,8 @@ public class SkipList {
      * Constructor
      */
     public SkipList() {
-        head = new SkipListNode(null, null);
-        tail = new SkipListNode(null, null);
+        head = new SkipListNode<K, V>(null, null);
+        tail = new SkipListNode<K, V>(null, null);
 
         head.right = tail;
         tail.left = head;
@@ -56,15 +56,15 @@ public class SkipList {
     }
 
     /**
-     * find the SkipListNode by the key. If not present in SkipList, find the
-     * immediate left SkipListNode which has the floor value of key
+     * find the SkipListNode<K> by the key. If not present in SkipList, find the
+     * immediate left SkipListNode<K> which has the floor value of key
      * (floorSkipListNode(key))
      *
      * @param key key
-     * @return a SkipListNode with the 'key' of floor(key)
+     * @return a SkipListNode<K> with the 'key' of floor(key)
      */
-    public SkipListNode find(ByteArray key) {
-        SkipListNode cur = head;
+    public SkipListNode<K, V> find(K key) {
+        SkipListNode<K, V> cur = head;
 
         while (true) {
             while (cur.right.key != null && cur.right.key.compareTo(key) <= 0)
@@ -79,16 +79,16 @@ public class SkipList {
     }
 
     /**
-     * find a SkipListNode with input key as key and return it. If not present,
+     * find a SkipListNode<K> with input key as key and return it. If not present,
      * return null;
      *
      * @param key key
-     * @return a SkipListNode or null
+     * @return a SkipListNode<K> or null
      */
-    public SkipListNode get(ByteArray key) {
+    public SkipListNode<K, V> get(K key) {
         readLock.lock();
         try {
-            SkipListNode found = find(key);
+            SkipListNode<K, V> found = find(key);
 
             if (found.key == null)
                 return null;
@@ -101,20 +101,20 @@ public class SkipList {
         return null;
     }
 
-    public boolean containsKey(ByteArray key) {
-        SkipListNode node = find(key);
+    public boolean containsKey(K key) {
+        SkipListNode<K, V> node = find(key);
         return node.key != null && node.key.compareTo(key) == 0 && !node.isDeleted();
     }
 
     /**
-     * add a new SkipListNode if a SkipListNode with same key was not found. Update
-     * if a SkipListNode with same key was found.
+     * add a new SkipListNode<K> if a SkipListNode<K> with same key was not found.
+     * Update if a SkipListNode<K> with same key was found.
      *
      * @param key key
      * @param val value
      */
-    public void put(ByteArray key, ByteArray val) {
-        SkipListNode found = null, cur = null;
+    public void put(K key, V val) {
+        SkipListNode<K, V> found = null, cur = null;
 
         writeLock.lock();
         try {
@@ -126,7 +126,7 @@ public class SkipList {
                 return;
             }
 
-            cur = new SkipListNode(key, val);
+            cur = new SkipListNode<K, V>(key, val);
             insertRight(found, cur);
         } finally {
             if (writeLock.isHeldByCurrentThread())
@@ -156,14 +156,14 @@ public class SkipList {
     }
 
     /**
-     * delete the SkipListNode identified by the key
+     * delete the SkipListNode<K> identified by the key
      *
      * @param key key
-     * @return true if a SkipListNode was removed, false if SkipListNode was not
-     *         found
+     * @return true if a SkipListNode<K> was removed, false if SkipListNode<K> was
+     *         not found
      */
-    public boolean del(ByteArray key) {
-        SkipListNode found = find(key);
+    public boolean del(K key) {
+        SkipListNode<K, V> found = find(key);
         if (found.key != null && found.key.compareTo(key) == 0) {
             found.delete();
             length--;
@@ -184,6 +184,7 @@ public class SkipList {
 
     /**
      * size of all nodes in bytes
+     * 
      * @return long
      */
     public long size() {
@@ -194,8 +195,8 @@ public class SkipList {
      * add a new layer to the top
      */
     private void addNewLayer() {
-        SkipListNode h = new SkipListNode(null, null);
-        SkipListNode t = new SkipListNode(null, null);
+        SkipListNode<K, V> h = new SkipListNode<K, V>(null, null);
+        SkipListNode<K, V> t = new SkipListNode<K, V>(null, null);
 
         h.right = t;
         t.left = h;
@@ -217,8 +218,8 @@ public class SkipList {
      * @param q SkipListNode
      * @return SkipListNode
      */
-    private SkipListNode addNewNodeToTower(SkipListNode p, SkipListNode q) {
-        SkipListNode dummy = new SkipListNode(q.key, null);
+    private SkipListNode<K, V> addNewNodeToTower(SkipListNode<K, V> p, SkipListNode<K, V> q) {
+        SkipListNode<K, V> dummy = new SkipListNode<K, V>(q.key, null);
 
         dummy.left = p;
         dummy.right = p.right;
@@ -237,7 +238,7 @@ public class SkipList {
      * @param p SkipListNode
      * @param q SkipListNode
      */
-    private void insertRight(SkipListNode p, SkipListNode q) {
+    private void insertRight(SkipListNode<K, V> p, SkipListNode<K, V> q) {
         p.right.left = q;
         q.right = p.right;
 
@@ -250,11 +251,11 @@ public class SkipList {
      *
      * @return Iterable<SkipListNode>
      */
-    public Iterator<SkipListNode> iterator() {
-        return new Iterator<SkipListNode>() {
-            SkipListNode currentNode;
+    public Iterator<SkipListNode<K, V>> iterator() {
+        return new Iterator<SkipListNode<K, V>>() {
+            SkipListNode<K, V> currentNode;
 
-            public Iterator<SkipListNode> init() {
+            public Iterator<SkipListNode<K, V>> init() {
                 currentNode = sentinel;
                 while (currentNode.down != null)
                     currentNode = currentNode.down;
@@ -263,7 +264,7 @@ public class SkipList {
             }
 
             @Override
-            public SkipListNode next() {
+            public SkipListNode<K, V> next() {
                 currentNode = currentNode.right;
                 return currentNode;
             }
@@ -287,7 +288,7 @@ public class SkipList {
     @Override
     public String toString() {
         List<List<String>> rows = new ArrayList<>();
-        SkipListNode curNode = sentinel, temp = curNode;
+        SkipListNode<K, V> curNode = sentinel, temp = curNode;
         int col = 0, curLvl = 0;
 
         while (temp != null && curLvl <= maxLevels.get()) {

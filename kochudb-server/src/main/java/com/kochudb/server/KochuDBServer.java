@@ -54,10 +54,12 @@ public class KochuDBServer extends Thread {
             } catch (ClassNotFoundException e) {
                 System.out.println("Server encountered ClassNotFound exception.");
                 e.printStackTrace();
+                alive = false;
             } catch (IOException e) {
                 System.out.println(e.getMessage());
-            } finally {
                 alive = false;
+            } finally {
+
             }
 
             // remove all completed futures
