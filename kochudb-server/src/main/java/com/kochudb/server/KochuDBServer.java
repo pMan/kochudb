@@ -5,7 +5,6 @@ import static com.kochudb.k.K.DEFAULT_PORT;
 
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.net.SocketException;
 import java.util.LinkedList;
 import java.util.Properties;
 import java.util.Queue;
@@ -55,24 +54,25 @@ public class KochuDBServer extends Thread {
             } catch (ClassNotFoundException e) {
                 System.out.println("Server encountered ClassNotFound exception.");
                 e.printStackTrace();
-                alive = false;
             } catch (IOException e) {
                 System.out.println(e.getMessage());
+            } finally {
                 alive = false;
             }
-            
+
             // remove all completed futures
             while (!queryResults.isEmpty() && queryResults.peek().isDone())
                 queryResults.poll();
         }
+
         if (!alive) {
-            // wait for all running queries to complete
+            // wait for all running queries to complete to ensure graceful shutdown
             while (!queryResults.isEmpty()) {
                 try {
                     queryResults.poll().get();
                 } catch (InterruptedException | ExecutionException e) {
                     e.printStackTrace();
-                    
+
                     if (e instanceof InterruptedException)
                         Thread.currentThread().interrupt();
                 }
