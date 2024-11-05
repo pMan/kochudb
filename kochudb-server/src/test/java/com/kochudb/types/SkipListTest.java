@@ -17,11 +17,11 @@ import com.kochudb.storage.SkipListNode;
 
 class SkipListTest {
 
-    private SkipList skipListUnderTest;
+    private SkipList<ByteArray, ByteArray> skipListUnderTest;
 
     @BeforeEach
     void setUp() {
-        skipListUnderTest = new SkipList();
+        skipListUnderTest = new SkipList<ByteArray, ByteArray>();
     }
 
     @Test
@@ -30,7 +30,7 @@ class SkipListTest {
         final ByteArray key = new ByteArray("t");
 
         // Run the test
-        final SkipListNode result = skipListUnderTest.find(key);
+        final SkipListNode<ByteArray, ByteArray> result = skipListUnderTest.find(key);
 
         assertNull(result.getKey());
         assertNull(result.getValue());
@@ -92,7 +92,7 @@ class SkipListTest {
     void testIterator() {
         // Setup
         // Run the test
-        final Iterator<SkipListNode> result = skipListUnderTest.iterator();
+        final Iterator<SkipListNode<ByteArray, ByteArray>> result = skipListUnderTest.iterator();
 
         // Verify the results
     }

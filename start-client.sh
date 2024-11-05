@@ -1,8 +1,8 @@
-#1 /bin/bash
+#!/bin/bash
 
 if [ -d "cli-client/target" ]; then
   java -jar cli-client/target/cli-client*.jar
 else
-  echo "Please build cli project first"
+  echo "Please build client project first"
 fi
 

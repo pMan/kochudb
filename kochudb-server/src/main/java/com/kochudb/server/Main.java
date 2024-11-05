@@ -39,6 +39,7 @@ public class Main {
         }
 
         KochuDBServer kochuDBServer = new KochuDBServer(prop);
+        System.out.printf((WELCOME_BANNER) + "%n", prop.getProperty("version", "0.0.0"));
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
             public void run() {
@@ -51,10 +52,6 @@ public class Main {
                 }
             }
         });
-
-        System.out.println("Shutdown hook added");
-
-        System.out.printf((WELCOME_BANNER) + "%n", prop.getProperty("version", "0.0.0"));
 
         kochuDBServer.start();
     }

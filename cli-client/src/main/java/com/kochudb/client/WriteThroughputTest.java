@@ -6,7 +6,9 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Random;
 
 import com.kochudb.shared.DTO;
@@ -167,7 +169,7 @@ public class WriteThroughputTest {
         }
         return s;
     }
-    
+
     static String randomSimpleSentence() {
         String s = "this is ";
         if (Math.random() > 0.15) { // 85% of sentences have a noun phrase.
@@ -175,7 +177,7 @@ public class WriteThroughputTest {
         }
         return s + "the house that Jack built";
     }
-    
+
     public static String randomSentence() {
         String s = randomSimpleSentence();
         if (Math.random() > 0.75) { // 25% of sentences continue with another clause.
@@ -191,34 +193,48 @@ public class WriteThroughputTest {
         return map;
     }
 
-    public static void insert(Map<String, String> map) throws UnknownHostException, IOException, ClassNotFoundException {
+    public static void insert(Map<String, String> map)
+            throws UnknownHostException, IOException, ClassNotFoundException {
         Socket socket = null;
-        
-        for (Map.Entry<String, String> e: map.entrySet()) {
+
+        for (Map.Entry<String, String> e : map.entrySet()) {
             socket = new Socket("localhost", 2222);
-            
+
             DTO dto = new DTO("set".getBytes(), e.getKey().getBytes(), e.getValue().getBytes());
             ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
             oos.writeObject(dto);
             oos.flush();
-            
+
             ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
             DTO res = (DTO) ois.readObject();
-            //AssertEquals(res.getData(), "ok");
+            // AssertEquals(res.getData(), "ok");
         }
 
         if (socket != null)
             socket.close();
     }
-    
+
     public static void main(String[] args) throws UnknownHostException, ClassNotFoundException, IOException {
-        int sets = 100, reps = 100;
-        
+        int sets = 100, reps = 100, totalInserts = sets * reps;
+
+        Queue<Map<String, String>> queue = new LinkedList<>();
         while (sets-- > 0) {
-            Map<String, String> map = createKeyVal(reps);
-            long s = System.currentTimeMillis();
-            insert(map);
-            System.out.println("Time took for set " + sets + ": " + (System.currentTimeMillis() - s) + "ms");
+            queue.add(createKeyVal(reps));
         }
+
+        sets++;
+
+        long totalTimeInNanos = 0;
+        while (!queue.isEmpty()) {
+            Map<String, String> map = queue.poll();
+            long s = System.nanoTime();
+            insert(map);
+            long curTimeInNanos = System.nanoTime() - s;
+            System.out.println("Time took for set " + sets++ + ": " + (curTimeInNanos / 1_000_000) + "ms");
+            totalTimeInNanos += curTimeInNanos;
+        }
+        System.out.println("total time in ms: " + (totalTimeInNanos / 1_000_000));
+        long latency = totalTimeInNanos / totalInserts;
+        System.out.println("Average insert time in microseconds: " + (latency / 1000));
     }
 }

@@ -34,7 +34,7 @@ public class KochuDBServer extends Thread {
         serverSocket = new ServerSocket(port);
         System.out.println("Server accepting connections on " + port);
 
-        storageEngine = new LSMTree(context);
+        storageEngine = new LSMTree<ByteArray, ByteArray>(context);
         queryPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(maxParallelQueries);
         queryResults = new LinkedList<Future<Boolean>>();
 
