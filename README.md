@@ -41,8 +41,7 @@ Use the shell scripts (`build-all.sh`, `start-server.sh`, `start-client.sh` in t
 ```
 #### Run server
 ```
-> cd kochudb-server
-> java -jar target/kochudb-server*.jar
+> java -jar kochudb-server/target/kochudb-server*.jar
 ```
 
 
@@ -51,7 +50,7 @@ Use the shell scripts (`build-all.sh`, `start-server.sh`, `start-client.sh` in t
 > java -jar cli-client/target/cli-client*.jar load
 ```
 
-#### Run interative cli client
+#### Run interactive cli client
 ```
 > java -jar cli-client/target/cli-client*.jar
 << KochuDB CLI client >>
