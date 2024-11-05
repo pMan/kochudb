@@ -20,8 +20,9 @@ class SkipListNodeTest {
 
     @BeforeAll
     public void setUpBeforeAll() {
-        node = new SkipListNode(new ByteArray("Key".getBytes()), new ByteArray("Value".getBytes()));
-        node.right = new SkipListNode(null, null);
+        node = new SkipListNode<ByteArray, ByteArray>(new ByteArray("Key".getBytes()),
+                new ByteArray("Value".getBytes()));
+        node.right = new SkipListNode<ByteArray, ByteArray>(null, null);
     }
 
     @BeforeEach

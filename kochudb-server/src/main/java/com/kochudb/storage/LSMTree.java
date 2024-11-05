@@ -30,7 +30,7 @@ import com.kochudb.types.ByteArray;
 /**
  * LSM Tree implementing basic operation on data store
  */
-public class LSMTree implements KVStorage<ByteArray, ByteArray> {
+public class LSMTree<K, V> implements KVStorage<ByteArray, ByteArray> {
 
     private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
 
@@ -117,13 +117,13 @@ public class LSMTree implements KVStorage<ByteArray, ByteArray> {
     @Override
     public ByteArray get(ByteArray key) {
         if (memTable.containsKey(key))
-            return (ByteArray) memTable.get(key).val;
+            return memTable.get(key).val;
 
         Iterator<SkipList<ByteArray, ByteArray>> iter = memTableQueue.descendingIterator();
         while (iter.hasNext()) {
             SkipList<ByteArray, ByteArray> skiplist = iter.next();
             if (skiplist.containsKey(key))
-                return (ByteArray) skiplist.get(key).val;
+                return skiplist.get(key).val;
         }
 
         for (Level level : levels) {

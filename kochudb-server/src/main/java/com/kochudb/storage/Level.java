@@ -87,13 +87,13 @@ public class Level {
             // openedFiles.put(segment, createDatFromIdx(segment.getIndexFile()));
         }
 
-        SkipList skipList = new SkipList();
-        
+        SkipList<ByteArray, ByteArray> skipList = new SkipList<ByteArray, ByteArray>();
+
         long maxFileSizeInLevel = computeMaxFileSizeInLevel(level + 1);
         while (!keyValueHeap.isEmpty()) {
             Object[] objArray = keyValueHeap.poll();
             ByteArray key = (ByteArray) objArray[0];
-            
+
             while (!keyValueHeap.isEmpty() && (key).compareTo((ByteArray) keyValueHeap.peek()[0]) == 0) {
                 objArray = keyValueHeap.poll();
                 key = (ByteArray) objArray[0];
@@ -101,17 +101,17 @@ public class Level {
 
             Long offset = (Long) objArray[1];
             SSTable sSTable = (SSTable) objArray[2];
-            
+
             KeyValueRecord record = sSTable.readRecord(offset);
             skipList.put(record.key(), record.value());
-            
+
             if (skipList.size() >= maxFileSizeInLevel) {
                 SSTable newSegment = new SSTable(level + 1);
                 newSegment.persist(skipList);
                 LSMTree.filesToRename.add(newSegment.getIndexFile());
 
                 logger.debug("New data file created: {}", newSegment.getDataFile());
-                skipList = new SkipList();
+                skipList = new SkipList<ByteArray, ByteArray>();
             }
         }
 

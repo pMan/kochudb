@@ -51,3 +51,5 @@ cli-client/src/main/java/com/kochudb/client/DataIngestor.java
 .classpath
 .project
 /.metadata/
+data*
+

@@ -17,7 +17,6 @@ import com.kochudb.types.KochuDBSerde;
  * insert, search, delete and update operations.
  * 
  * This implementation is thread safe. Delete operation is a soft-delete.
- * 
  */
 public class SkipList<K extends KochuDBSerde<K>, V extends KochuDBSerde<V>> {
 
@@ -57,7 +56,7 @@ public class SkipList<K extends KochuDBSerde<K>, V extends KochuDBSerde<V>> {
 
     /**
      * find the SkipListNode<K> by the key. If not present in SkipList, find the
-     * immediate left SkipListNode<K> which has the floor value of key
+     * immediate left SkipListNode<K, V> which has the floor value of key
      * (floorSkipListNode(key))
      *
      * @param key key
@@ -83,7 +82,7 @@ public class SkipList<K extends KochuDBSerde<K>, V extends KochuDBSerde<V>> {
      * return null;
      *
      * @param key key
-     * @return a SkipListNode<K> or null
+     * @return a SkipListNode<K, V> or null
      */
     public SkipListNode<K, V> get(K key) {
         readLock.lock();
@@ -101,6 +100,12 @@ public class SkipList<K extends KochuDBSerde<K>, V extends KochuDBSerde<V>> {
         return null;
     }
 
+    /**
+     * Does the skiplist contain a node with given key?
+     * 
+     * @param key
+     * @return
+     */
     public boolean containsKey(K key) {
         SkipListNode<K, V> node = find(key);
         return node.key != null && node.key.compareTo(key) == 0 && !node.isDeleted();
