@@ -26,29 +26,20 @@ import com.kochudb.utils.FileUtil;
 public class SSTable {
     private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
 
-    private int level;
     private String indexFile, dataFile;
-
-    public SSTable(int level, String index, String data) {
-        this.level = level;
-        this.indexFile = index;
-        this.dataFile = data;
-    }
-
-    public SSTable(int level, String index) {
-        this.level = level;
-        this.indexFile = index;
-        this.dataFile = index.replaceFirst(INDEX_FILE_EXT, DATA_FILE_EXT);
-    }
 
     public SSTable(int level) {
         String[] newFileNames = FileUtil.createNewIdxAndDataFilenames(level);
         if (level > 0)
             newFileNames[0] = newFileNames[0].replaceFirst(".idx$", ".idxtmp");
 
-        this.level = level;
         this.indexFile = newFileNames[0];
         this.dataFile = newFileNames[1];
+    }
+
+    public SSTable(int level, String index) {
+        this.indexFile = index;
+        this.dataFile = index.replaceFirst(INDEX_FILE_EXT, DATA_FILE_EXT);
     }
 
     public String getIndexFile() {
@@ -64,11 +55,11 @@ public class SSTable {
      * 
      * @return map of key and its corresponding offset
      */
-    public Map<ByteArray, Long> parseIndex() {
+    public SkipList<ByteArray, ByteArray> parseIndex() {
         logger.debug("Reading index file: {}", this.indexFile);
 
-        Map<ByteArray, Long> keyToOffset = new TreeMap<>();
-        // SkipList skipList = new SkipList();
+        // Map<ByteArray, Long> keyToOffset = new TreeMap<>();
+        SkipList<ByteArray, ByteArray> skipList = new SkipList<ByteArray, ByteArray>();
 
         try (RandomAccessFile raf = new RandomAccessFile(this.indexFile, "r")) {
             raf.seek(0);
@@ -80,17 +71,17 @@ public class SSTable {
                 // offset where the value resides
                 byte[] nextEightBytes = new byte[Long.BYTES];
                 raf.read(nextEightBytes, 0, Long.BYTES);
-                long offset = bytesToLong(nextEightBytes);
+                // long offset = bytesToLong(nextEightBytes);
 
-                keyToOffset.put(new ByteArray(key), offset);
-                // skipList.put(new ByteArray(key), new ByteArray(nextEightBytes));
+                // keyToOffset.put(new ByteArray(key), offset);
+                skipList.put(new ByteArray(key), new ByteArray(nextEightBytes));
             }
         } catch (FileNotFoundException e) {
-            return new TreeMap<>();
+            return new SkipList<ByteArray, ByteArray>();
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return keyToOffset;
+        return skipList;
     }
 
     /**
@@ -106,15 +97,15 @@ public class SSTable {
                 // key
                 byte[] keyFromFile = new byte[raf.read()];
                 raf.read(keyFromFile, 0, keyFromFile.length);
-                byte[] nextEightBytes = new byte[Long.BYTES];
 
                 // keyFromFile is smaller than search key
                 if (searchKey.compareTo(new ByteArray(keyFromFile)) > 0) {
-                    raf.read(nextEightBytes, 0, Long.BYTES);
+                    raf.seek(raf.getFilePointer() + Long.BYTES);
                     continue;
                 }
                 // both keys are equal
                 if (searchKey.compareTo(new ByteArray(keyFromFile)) == 0) {
+                    byte[] nextEightBytes = new byte[Long.BYTES];
                     raf.read(nextEightBytes, 0, Long.BYTES);
                     long offset = bytesToLong(nextEightBytes);
 
@@ -201,7 +192,7 @@ public class SSTable {
      * @throws IOException
      */
     public KeyValueRecord readRecord(Long offset) {
-        try (RandomAccessFile raf = new RandomAccessFile(dataFile, "r");) {
+        try (RandomAccessFile raf = new RandomAccessFile(dataFile, "r")) {
             int keyLen = bytesToInt(readBytes(raf, offset, KEY.length));
             offset += KEY.length;
 
