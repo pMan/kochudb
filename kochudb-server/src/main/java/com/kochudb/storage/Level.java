@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.PriorityQueue;
@@ -16,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.kochudb.types.ByteArray;
 import com.kochudb.types.KeyValueRecord;
+import com.kochudb.utils.ByteUtil;
 import com.kochudb.utils.FileUtil;
 
 public class Level {
@@ -63,9 +65,7 @@ public class Level {
     public ByteArray search(ByteArray key) {
         for (SSTable sSTable : sSTables) {
             KeyValueRecord record = sSTable.search(key);
-            if (record != null) {
-                return record.value();
-            }
+            return record.value();
         }
         return null;
     }
@@ -79,10 +79,12 @@ public class Level {
     public void compactLevel() throws IOException {
         for (SSTable sSTable : sSTables) {
             SkipList<ByteArray, ByteArray> skiplist = sSTable.parseIndex();
-            skiplist.iterator().forEachRemaining((listNode) -> {
-                Object[] objArray = new Object[] { listNode.key, listNode.val, sSTable };
+            Iterator<SkipListNode<ByteArray, ByteArray>> iter = skiplist.iterator();
+            while (iter.hasNext()) {
+                SkipListNode<ByteArray, ByteArray> node = iter.next();
+                Object[] objArray = new Object[] { node.key, node.val, sSTable };
                 keyValueHeap.offer(objArray);
-            });
+            }
         }
 
         SkipList<ByteArray, ByteArray> skipList = new SkipList<ByteArray, ByteArray>();
@@ -97,7 +99,7 @@ public class Level {
                 key = (ByteArray) objArray[0];
             }
 
-            Long offset = (Long) objArray[1];
+            Long offset = ByteUtil.bytesToLong(((ByteArray) objArray[1]).serialize());
             SSTable sSTable = (SSTable) objArray[2];
 
             KeyValueRecord record = sSTable.readRecord(offset);

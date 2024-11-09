@@ -5,7 +5,6 @@ import static com.kochudb.k.K.INDEX_FILE_EXT;
 import static com.kochudb.k.Record.KEY;
 import static com.kochudb.k.Record.VALUE;
 import static com.kochudb.utils.ByteUtil.bytesToInt;
-import static com.kochudb.utils.ByteUtil.bytesToLong;
 import static com.kochudb.utils.ByteUtil.longToBytes;
 
 import java.io.FileNotFoundException;
@@ -21,6 +20,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.kochudb.types.ByteArray;
 import com.kochudb.types.KeyValueRecord;
+import com.kochudb.utils.ByteUtil;
 import com.kochudb.utils.FileUtil;
 
 public class SSTable {
@@ -91,35 +91,12 @@ public class SSTable {
      * @return KeyValueRecord
      */
     public KeyValueRecord search(ByteArray searchKey) {
-        try (RandomAccessFile raf = new RandomAccessFile(this.indexFile, "r")) {
-            raf.seek(0);
-            while (raf.getFilePointer() < raf.length()) {
-                // key
-                byte[] keyFromFile = new byte[raf.read()];
-                raf.read(keyFromFile, 0, keyFromFile.length);
+        SkipList<ByteArray, ByteArray> skiplist = this.parseIndex();
+        SkipListNode<ByteArray, ByteArray> node = skiplist.find(searchKey);
+        if (node.val == null)
+            return null;
 
-                // keyFromFile is smaller than search key
-                if (searchKey.compareTo(new ByteArray(keyFromFile)) > 0) {
-                    raf.seek(raf.getFilePointer() + Long.BYTES);
-                    continue;
-                }
-                // both keys are equal
-                if (searchKey.compareTo(new ByteArray(keyFromFile)) == 0) {
-                    byte[] nextEightBytes = new byte[Long.BYTES];
-                    raf.read(nextEightBytes, 0, Long.BYTES);
-                    long offset = bytesToLong(nextEightBytes);
-
-                    return readRecord(offset);
-                }
-                // keyFromFile is greater than search key
-                break;
-            }
-        } catch (FileNotFoundException e) {
-            logger.error("Index file not found: {}", this.indexFile);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
+        return readRecord(ByteUtil.bytesToLong(node.val.serialize()));
     }
 
     /**

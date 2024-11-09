@@ -59,6 +59,6 @@ public class SkipListNode<K extends KochuDBSerde<K>, V extends KochuDBSerde<V>> 
 
     @Override
     public String toString() {
-        return new String(key.serialize());
+        return new String(key.serialize()) + ", " + new String(val.serialize());
     }
 }
