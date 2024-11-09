@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 
 import com.kochudb.storage.LSMTree;
 import com.kochudb.storage.SSTable;
+import com.kochudb.storage.SkipList;
 
 class SegmentTest {
 
@@ -38,7 +39,7 @@ class SegmentTest {
 
         lsmt = new LSMTree(props);
 
-        seg = new SSTable(0, "testfile.idx", "testfile.kdb");
+        seg = new SSTable(0, "testfile.idx");
     }
 
     @Test
@@ -57,7 +58,7 @@ class SegmentTest {
     static void testReadIndexFile() {
         // Setup
         // Run the test
-        final Map<ByteArray, Long> result = seg.parseIndex();
+        final SkipList<ByteArray, ByteArray> result = seg.parseIndex();
 
         assertTrue(result.containsKey(new ByteArray("t")));
         assertEquals(0L, result.get(new ByteArray("t")));
@@ -120,7 +121,7 @@ class SegmentTest {
     static void teardown() throws IOException {
         File f = new File(seg.getIndexFile());
         f.delete();
-        
+
         f = new File(seg.getDataFile());
         f.delete();
     }

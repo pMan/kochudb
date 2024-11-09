@@ -39,8 +39,7 @@ public class FileUtil {
         File[] files = findFiles(dataDirectory, level, Comparator.comparingLong(File::lastModified));
         List<SSTable> sSTables = new LinkedList<SSTable>();
         for (File file : files) {
-            SSTable seg = new SSTable(level, file.getAbsolutePath(),
-                    file.getAbsolutePath().replaceFirst(".idx$", DATA_FILE_EXT));
+            SSTable seg = new SSTable(level, file.getAbsolutePath());
             sSTables.add(seg);
         }
         return sSTables;

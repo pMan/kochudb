@@ -9,7 +9,6 @@ import java.lang.invoke.MethodHandles;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.PriorityQueue;
 
 import org.apache.logging.log4j.LogManager;
@@ -78,13 +77,12 @@ public class Level {
      * @throws IOException
      */
     public void compactLevel() throws IOException {
-        // Map<Segment, RandomAccessFile> openedFiles = new HashMap<>();
         for (SSTable sSTable : sSTables) {
-            for (Map.Entry<ByteArray, Long> indexData : sSTable.parseIndex().entrySet()) {
-                Object[] objArray = new Object[] { indexData.getKey(), indexData.getValue(), sSTable };
+            SkipList<ByteArray, ByteArray> skiplist = sSTable.parseIndex();
+            skiplist.iterator().forEachRemaining((listNode) -> {
+                Object[] objArray = new Object[] { listNode.key, listNode.val, sSTable };
                 keyValueHeap.offer(objArray);
-            }
-            // openedFiles.put(segment, createDatFromIdx(segment.getIndexFile()));
+            });
         }
 
         SkipList<ByteArray, ByteArray> skipList = new SkipList<ByteArray, ByteArray>();
@@ -157,13 +155,6 @@ public class Level {
     private static long computeMaxFileSizeInLevel(int level) {
         if (level > 0)
             return computeMaxFileSizeInLevel(level - 1) * LEVEL_MAX_SIZE_MULTIPLIER;
-        return 1024 * LEVEL_ZERO_FILE_MAX_SIZE_KB; // 4 kb;
-    }
-
-    public SSTable getLatestSegment(int level) {
-        if (sSTables.size() == 0)
-            return new SSTable(level);
-
-        return sSTables.get(sSTables.size() - 1);
+        return 1024 * LEVEL_ZERO_FILE_MAX_SIZE_KB; // 4 kb
     }
 }
