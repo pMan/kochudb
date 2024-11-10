@@ -1,20 +1,21 @@
 package com.kochudb.storage;
 
+import java.nio.charset.StandardCharsets;
+
+import com.kochudb.types.ByteArray;
 import com.kochudb.types.KochuDBSerde;
 
 /**
  * Skip list Element
  */
-public class SkipListNode<K extends KochuDBSerde<K>, V extends KochuDBSerde<V>> {
+public class SkipListNode<T extends KochuDBSerde<T>> {
 
-    // key/value of type ByteArray
-    K key;
-    V val;
+    T data;
 
     public boolean deleted;
 
     // references to all four neighbors
-    public SkipListNode<K, V> left, right, up, down;
+    public SkipListNode<T> left, right, up, down;
 
     /**
      * An element in the SkipList, stores key and value
@@ -22,27 +23,14 @@ public class SkipListNode<K extends KochuDBSerde<K>, V extends KochuDBSerde<V>> 
      * @param key key
      * @param val value
      */
-    public SkipListNode(K key, V val) {
-        this.key = key;
-        this.val = val;
+    public SkipListNode(T node) {
+        this.data = node;
 
         left = null;
         right = null;
         up = null;
         down = null;
         deleted = false;
-    }
-
-    public K getKey() {
-        return key;
-    }
-
-    public V getValue() {
-        return val;
-    }
-
-    public void setValue(V val) {
-        this.val = val;
     }
 
     public void delete() {
@@ -57,8 +45,18 @@ public class SkipListNode<K extends KochuDBSerde<K>, V extends KochuDBSerde<V>> 
         return deleted;
     }
 
+    public ByteArray getKey() {
+        return data.key();
+    }
+
+    public ByteArray getValue() {
+        return data.value();
+    }
+
     @Override
     public String toString() {
-        return new String(key.serialize()) + ", " + new String(val.serialize());
+        return new String(getKey().bytes(), StandardCharsets.UTF_8) + ", "
+                + new String(getValue().bytes(), StandardCharsets.UTF_8);
     }
+
 }

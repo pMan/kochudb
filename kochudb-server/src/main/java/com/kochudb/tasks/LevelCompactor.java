@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.kochudb.storage.Level;
+import com.kochudb.storage.LSMTree;
 import com.kochudb.utils.FileUtil;
 
 public class LevelCompactor implements Runnable {
@@ -32,8 +32,6 @@ public class LevelCompactor implements Runnable {
     // Currently compaction is in progress?
     private static volatile AtomicBoolean isRunning;
 
-    File dir;
-
     /**
      * Constructor
      * 
@@ -43,7 +41,6 @@ public class LevelCompactor implements Runnable {
 
         isRunning = new AtomicBoolean(false);
         levelZeroFileSize = 1024 * LEVEL_ZERO_FILE_MAX_SIZE_KB; // 4 kb
-        this.dir = dir;
 
         try {
             dataDirectory = dir.getCanonicalPath();
@@ -105,7 +102,7 @@ public class LevelCompactor implements Runnable {
         if (shouldStartCompactionNow(level)) {
             logger.debug("Compaction started. current level: {}", level);
 
-            new Level(level).compactLevel();
+            LSMTree.levels.get(level).compactLevel();
 
             logger.trace("Deleting compacted files at level: {}", level);
             if (level < NUM_LEVELS)

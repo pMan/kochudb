@@ -19,4 +19,12 @@ public interface KochuDBSerde<T> extends Comparable<T>, Serializable {
 
     public int length();
 
+    public int compareTo(ByteArray o);
+
+    public ByteArray key();
+
+    public ByteArray value();
+
+    public long lastModified();
+
 }

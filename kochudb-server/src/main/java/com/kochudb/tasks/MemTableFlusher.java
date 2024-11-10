@@ -12,17 +12,18 @@ import org.apache.logging.log4j.Logger;
 import com.kochudb.storage.SSTable;
 import com.kochudb.storage.SkipList;
 import com.kochudb.types.ByteArray;
+import com.kochudb.types.Record;
 
 public class MemTableFlusher implements Runnable {
 
     private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
 
-    Deque<SkipList<ByteArray, ByteArray>> memTableQueue;
+    Deque<SkipList<Record>> memTableQueue;
 
-    // key and the offset where the record is stored in file
+    // key and the offset of the value where the record is stored in file
     Map<ByteArray, Long> keyToOffsetMap;
 
-    public MemTableFlusher(Deque<SkipList<ByteArray, ByteArray>> memTableQueue) {
+    public MemTableFlusher(Deque<SkipList<Record>> memTableQueue) {
         this.memTableQueue = memTableQueue;
     }
 
@@ -34,7 +35,7 @@ public class MemTableFlusher implements Runnable {
     // flush current state of the queue
     private void flush() {
         while (!memTableQueue.isEmpty()) {
-            SkipList<ByteArray, ByteArray> skipList = memTableQueue.peekFirst();
+            SkipList<Record> skipList = memTableQueue.peekFirst();
 
             SSTable sSTable = new SSTable(0);
             try {

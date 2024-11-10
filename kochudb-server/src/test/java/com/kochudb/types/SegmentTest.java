@@ -58,10 +58,10 @@ class SegmentTest {
     static void testReadIndexFile() {
         // Setup
         // Run the test
-        final SkipList<ByteArray, ByteArray> result = seg.parseIndex();
+        final SkipList<Record> result = seg.parseIndex();
 
-        assertTrue(result.containsKey(new ByteArray("t")));
-        assertEquals(0L, result.get(new ByteArray("t")));
+        assertTrue(result.containsKey(new Record("t".getBytes(), null, 0L)));
+        assertEquals(0L, result.get(new Record("t".getBytes(), null, 0L)));
     }
 
     @Test

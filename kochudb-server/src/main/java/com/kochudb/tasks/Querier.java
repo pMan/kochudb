@@ -37,7 +37,7 @@ public class Querier implements Callable<Boolean> {
     public Boolean call() {
         String command = new String(dto.command(), StandardCharsets.UTF_8);
         byte[] response = switch (command) {
-        case "get" -> storageEngine.get(new ByteArray(dto.key())).serialize();
+        case "get" -> storageEngine.get(new ByteArray(dto.key())).bytes();
         case "set" -> storageEngine.set(new ByteArray(dto.key()), new ByteArray(dto.value()));
         case "del" -> storageEngine.del(new ByteArray(dto.key()));
         default -> "Invalid Operation".getBytes();

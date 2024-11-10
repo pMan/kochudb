@@ -36,7 +36,7 @@ class LSMTreeTest {
         byte[] result = LSMTreeTest.lsmt.set(key, val);
 
         assertEquals("ok", new String(result, "utf-8"));
-        assertEquals("Val", new String(LSMTreeTest.lsmt.get(key).serialize(), "utf-8"));
+        assertEquals("Val", new String(LSMTreeTest.lsmt.get(key).bytes(), "utf-8"));
     }
 
     @Test
