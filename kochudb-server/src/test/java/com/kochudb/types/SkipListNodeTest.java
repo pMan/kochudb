@@ -16,13 +16,13 @@ import com.kochudb.storage.SkipListNode;
 @TestInstance(Lifecycle.PER_CLASS)
 class SkipListNodeTest {
 
-    SkipListNode<ByteArray, ByteArray> node;
+    SkipListNode<Record> node;
 
     @BeforeAll
     public void setUpBeforeAll() {
-        node = new SkipListNode<ByteArray, ByteArray>(new ByteArray("Key".getBytes()),
-                new ByteArray("Value".getBytes()));
-        node.right = new SkipListNode<ByteArray, ByteArray>(null, null);
+        node = new SkipListNode<Record>(
+                new Record(new ByteArray("Key".getBytes()), new ByteArray("Value".getBytes()), 0L));
+        node.right = new SkipListNode<Record>(new Record(new ByteArray(), null, 0L));
     }
 
     @BeforeEach
@@ -32,9 +32,9 @@ class SkipListNodeTest {
     @Test
     void test() {
 
-        assertTrue(new ByteArray("Key".getBytes()).compareTo(node.getKey()) == 0);
+        assertTrue(node.getValue().compareTo(new ByteArray("Key".getBytes())) == 0);
 
-        assertArrayEquals("Value".getBytes(), node.getValue().serialize());
+        assertArrayEquals("Value".getBytes(), node.getValue().bytes());
 
         assertNull(node.down);
 

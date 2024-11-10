@@ -16,7 +16,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.kochudb.types.ByteArray;
-import com.kochudb.types.KeyValueRecord;
+import com.kochudb.types.Record;
 import com.kochudb.utils.ByteUtil;
 import com.kochudb.utils.FileUtil;
 
@@ -25,19 +25,21 @@ public class Level {
     private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
 
     private int level;
+    private final LSMTree<?, ?> lsmTree;
     private List<SSTable> sSTables;
     private PriorityQueue<Object[]> keyValueHeap;
 
-    public Level(int level) {
+    public Level(int level, LSMTree<?, ?> tree) {
         this.level = level;
+        this.lsmTree = tree;
         sSTables = new LinkedList<SSTable>();
         keyValueHeap = new PriorityQueue<Object[]>((first, second) -> {
-            ByteArray keyFirst = (ByteArray) first[0];
-            ByteArray keySecond = (ByteArray) second[0];
+            Record keyFirst = (Record) first[0];
+            Record keySecond = (Record) second[0];
 
             if (keyFirst.compareTo(keySecond) == 0) {
-                SSTable segFirst = (SSTable) first[2];
-                SSTable segSecond = (SSTable) second[2];
+                SSTable segFirst = (SSTable) first[1];
+                SSTable segSecond = (SSTable) second[1];
                 return segFirst.getIndexFile().compareTo(segSecond.getIndexFile());
             }
             return keyFirst.compareTo(keySecond);
@@ -64,8 +66,13 @@ public class Level {
      */
     public ByteArray search(ByteArray key) {
         for (SSTable sSTable : sSTables) {
-            KeyValueRecord record = sSTable.search(key);
-            return record.value();
+            Record indexRecord = sSTable.search(key);
+            if (indexRecord != null) {
+
+                long offset = ByteUtil.bytesToLong(indexRecord.value().bytes());
+                Record data = sSTable.readRecord(offset);
+                return data.value();
+            }
         }
         return null;
     }
@@ -78,32 +85,32 @@ public class Level {
      */
     public void compactLevel() throws IOException {
         for (SSTable sSTable : sSTables) {
-            SkipList<ByteArray, ByteArray> skiplist = sSTable.parseIndex();
-            Iterator<SkipListNode<ByteArray, ByteArray>> iter = skiplist.iterator();
+            SkipList<Record> skiplist = sSTable.parseIndex();
+            Iterator<SkipListNode<Record>> iter = skiplist.iterator();
             while (iter.hasNext()) {
-                SkipListNode<ByteArray, ByteArray> node = iter.next();
-                Object[] objArray = new Object[] { node.key, node.val, sSTable };
+                SkipListNode<Record> node = iter.next();
+                Object[] objArray = new Object[] { node.data, sSTable };
                 keyValueHeap.offer(objArray);
             }
         }
 
-        SkipList<ByteArray, ByteArray> skipList = new SkipList<ByteArray, ByteArray>();
+        SkipList<Record> skipList = new SkipList<Record>();
 
         long maxFileSizeInLevel = computeMaxFileSizeInLevel(level + 1);
         while (!keyValueHeap.isEmpty()) {
             Object[] objArray = keyValueHeap.poll();
-            ByteArray key = (ByteArray) objArray[0];
+            Record record = (Record) objArray[0];
 
-            while (!keyValueHeap.isEmpty() && (key).compareTo((ByteArray) keyValueHeap.peek()[0]) == 0) {
+            while (!keyValueHeap.isEmpty() && record.compareTo((Record) keyValueHeap.peek()[0]) == 0) {
                 objArray = keyValueHeap.poll();
-                key = (ByteArray) objArray[0];
+                record = (Record) objArray[0];
             }
 
-            Long offset = ByteUtil.bytesToLong(((ByteArray) objArray[1]).serialize());
-            SSTable sSTable = (SSTable) objArray[2];
+            Long offset = ByteUtil.bytesToLong(((ByteArray) record.value()).bytes());
+            SSTable sSTable = (SSTable) objArray[1];
 
-            KeyValueRecord record = sSTable.readRecord(offset);
-            skipList.put(record.key(), record.value());
+            Record record2 = sSTable.readRecord(offset);
+            skipList.put(record2);
 
             if (skipList.size() >= maxFileSizeInLevel) {
                 SSTable newSegment = new SSTable(level + 1);
@@ -111,7 +118,7 @@ public class Level {
                 LSMTree.filesToRename.add(newSegment.getIndexFile());
 
                 logger.debug("New data file created: {}", newSegment.getDataFile());
-                skipList = new SkipList<ByteArray, ByteArray>();
+                skipList = new SkipList<Record>();
             }
         }
 
@@ -126,6 +133,7 @@ public class Level {
 
         renameIndexFiles();
         deleteCompactedFiles();
+        lsmTree.updateLevels();
     }
 
     public void insert(SSTable sSTable) {

@@ -18,13 +18,13 @@ import com.kochudb.types.KochuDBSerde;
  * 
  * This implementation is thread safe. Delete operation is a soft-delete.
  */
-public class SkipList<K extends KochuDBSerde<K>, V extends KochuDBSerde<V>> {
+public class SkipList<T extends KochuDBSerde<T>> {
 
     private AtomicInteger maxLevels;
     private int curLevel, length;
     private AtomicLong size;
 
-    private SkipListNode<K, V> sentinel, head, tail;
+    private SkipListNode<T> sentinel, head, tail;
 
     public final WriteLock writeLock;
     public final ReadLock readLock;
@@ -34,8 +34,8 @@ public class SkipList<K extends KochuDBSerde<K>, V extends KochuDBSerde<V>> {
      * Constructor
      */
     public SkipList() {
-        head = new SkipListNode<K, V>(null, null);
-        tail = new SkipListNode<K, V>(null, null);
+        head = new SkipListNode<T>(null);
+        tail = new SkipListNode<T>(null);
 
         head.right = tail;
         tail.left = head;
@@ -55,18 +55,18 @@ public class SkipList<K extends KochuDBSerde<K>, V extends KochuDBSerde<V>> {
     }
 
     /**
-     * find the SkipListNode<K> by the key. If not present in SkipList, find the
-     * immediate left SkipListNode<K, V> which has the floor value of key
-     * (floorSkipListNode(key))
+     * find the SkipListNode2<K> by the key. If not present in SkipList, find the
+     * immediate left SkipListNode2<T> which has the floor value of key
+     * (floorSkipListNode2(key))
      *
      * @param key key
-     * @return a SkipListNode<K> with the 'key' of floor(key)
+     * @return a SkipListNode2<K> with the 'key' of floor(key)
      */
-    public SkipListNode<K, V> find(K key) {
-        SkipListNode<K, V> cur = head;
+    public SkipListNode<T> find(T key) {
+        SkipListNode<T> cur = head;
 
         while (true) {
-            while (cur.right.key != null && cur.right.key.compareTo(key) <= 0)
+            while (cur.right.data != null && cur.right.data.compareTo(key) <= 0)
                 cur = cur.right;
 
             if (cur.down == null)
@@ -78,21 +78,21 @@ public class SkipList<K extends KochuDBSerde<K>, V extends KochuDBSerde<V>> {
     }
 
     /**
-     * find a SkipListNode<K> with input key as key and return it. If not present,
+     * find a SkipListNode2<K> with input key as key and return it. If not present,
      * return null;
      *
      * @param key key
-     * @return a SkipListNode<K, V> or null
+     * @return a SkipListNode2<T> or null
      */
-    public SkipListNode<K, V> get(K key) {
+    public SkipListNode<T> get(T key) {
         readLock.lock();
         try {
-            SkipListNode<K, V> found = find(key);
+            SkipListNode<T> found = find(key);
 
-            if (found.key == null)
+            if (found.data == null)
                 return null;
 
-            if (found.key.compareTo(key) == 0 && !found.isDeleted())
+            if (found.data.compareTo(key) == 0 && !found.isDeleted())
                 return found;
         } finally {
             readLock.unlock();
@@ -106,32 +106,32 @@ public class SkipList<K extends KochuDBSerde<K>, V extends KochuDBSerde<V>> {
      * @param key
      * @return
      */
-    public boolean containsKey(K key) {
-        SkipListNode<K, V> node = find(key);
-        return node.key != null && node.key.compareTo(key) == 0 && !node.isDeleted();
+    public boolean containsKey(T key) {
+        SkipListNode<T> node = find(key);
+        return node.data != null && node.data.compareTo(key) == 0 && !node.isDeleted();
     }
 
     /**
-     * add a new SkipListNode<K> if a SkipListNode<K> with same key was not found.
-     * Update if a SkipListNode<K> with same key was found.
+     * add a new SkipListNode2<K> if a SkipListNode2<K> with same key was not found.
+     * Update if a SkipListNode2<K> with same key was found.
      *
      * @param key key
      * @param val value
      */
-    public void put(K key, V val) {
-        SkipListNode<K, V> found = null, cur = null;
+    public void put(T node) {
+        SkipListNode<T> found = null, cur = null;
 
         writeLock.lock();
         try {
-            found = find(key);
+            found = find(node);
 
-            if (found.key != null && found.key.compareTo(key) == 0) {
-                found.setValue(val);
+            if (found.data != null && found.data.compareTo(node) == 0) {
+                found.data = node;
                 writeLock.unlock();
                 return;
             }
 
-            cur = new SkipListNode<K, V>(key, val);
+            cur = new SkipListNode<T>(node);
             insertRight(found, cur);
         } finally {
             if (writeLock.isHeldByCurrentThread())
@@ -157,22 +157,22 @@ public class SkipList<K extends KochuDBSerde<K>, V extends KochuDBSerde<V>> {
         }
 
         length++;
-        size.getAndAdd(key.length() + val.length());
+        size.getAndAdd(node.length());
     }
 
     /**
-     * delete the SkipListNode<K> identified by the key
+     * delete the SkipListNode2<K> identified by the key
      *
      * @param key key
-     * @return true if a SkipListNode<K> was removed, false if SkipListNode<K> was
+     * @return true if a SkipListNode2<K> was removed, false if SkipListNode2<K> was
      *         not found
      */
-    public boolean del(K key) {
-        SkipListNode<K, V> found = find(key);
-        if (found.key != null && found.key.compareTo(key) == 0) {
+    public boolean del(T node) {
+        SkipListNode<T> found = find(node);
+        if (found.data != null && found.data.compareTo(node) == 0) {
             found.delete();
             length--;
-            size.getAndAdd(-(key.length() + found.val.length()));
+            size.getAndAdd(-(node.length()));
             return true;
         }
         return false;
@@ -200,8 +200,8 @@ public class SkipList<K extends KochuDBSerde<K>, V extends KochuDBSerde<V>> {
      * add a new layer to the top
      */
     private void addNewLayer() {
-        SkipListNode<K, V> h = new SkipListNode<K, V>(null, null);
-        SkipListNode<K, V> t = new SkipListNode<K, V>(null, null);
+        SkipListNode<T> h = new SkipListNode<T>(null);
+        SkipListNode<T> t = new SkipListNode<T>(null);
 
         h.right = t;
         t.left = h;
@@ -219,12 +219,12 @@ public class SkipList<K extends KochuDBSerde<K>, V extends KochuDBSerde<V>> {
     /**
      * add dummy right of p, above q
      *
-     * @param p SkipListNode
-     * @param q SkipListNode
-     * @return SkipListNode
+     * @param p SkipListNode2
+     * @param q SkipListNode2
+     * @return SkipListNode2
      */
-    private SkipListNode<K, V> addNewNodeToTower(SkipListNode<K, V> p, SkipListNode<K, V> q) {
-        SkipListNode<K, V> dummy = new SkipListNode<K, V>(q.key, null);
+    private SkipListNode<T> addNewNodeToTower(SkipListNode<T> p, SkipListNode<T> q) {
+        SkipListNode<T> dummy = new SkipListNode<T>(q.data);
 
         dummy.left = p;
         dummy.right = p.right;
@@ -240,10 +240,10 @@ public class SkipList<K extends KochuDBSerde<K>, V extends KochuDBSerde<V>> {
     /**
      * insert q to the right of p
      *
-     * @param p SkipListNode
-     * @param q SkipListNode
+     * @param p SkipListNode2
+     * @param q SkipListNode2
      */
-    private void insertRight(SkipListNode<K, V> p, SkipListNode<K, V> q) {
+    private void insertRight(SkipListNode<T> p, SkipListNode<T> q) {
         p.right.left = q;
         q.right = p.right;
 
@@ -254,13 +254,13 @@ public class SkipList<K extends KochuDBSerde<K>, V extends KochuDBSerde<V>> {
     /**
      * Not implementing iterable interface, but provides one on-demand
      *
-     * @return Iterable<SkipListNode>
+     * @return Iterable<SkipListNode2>
      */
-    public Iterator<SkipListNode<K, V>> iterator() {
-        return new Iterator<SkipListNode<K, V>>() {
-            SkipListNode<K, V> currentNode;
+    public Iterator<SkipListNode<T>> iterator() {
+        return new Iterator<SkipListNode<T>>() {
+            SkipListNode<T> currentNode;
 
-            public Iterator<SkipListNode<K, V>> init() {
+            public Iterator<SkipListNode<T>> init() {
                 currentNode = sentinel;
                 while (currentNode.down != null)
                     currentNode = currentNode.down;
@@ -269,14 +269,14 @@ public class SkipList<K extends KochuDBSerde<K>, V extends KochuDBSerde<V>> {
             }
 
             @Override
-            public SkipListNode<K, V> next() {
+            public SkipListNode<T> next() {
                 currentNode = currentNode.right;
                 return currentNode;
             }
 
             @Override
             public boolean hasNext() {
-                while (currentNode.right != null && currentNode.right.key != null) {
+                while (currentNode.right != null && currentNode.right.data != null) {
                     if (!currentNode.right.isDeleted())
                         return true;
 
@@ -293,7 +293,7 @@ public class SkipList<K extends KochuDBSerde<K>, V extends KochuDBSerde<V>> {
     @Override
     public String toString() {
         List<List<String>> rows = new ArrayList<>();
-        SkipListNode<K, V> curNode = sentinel, temp = curNode;
+        SkipListNode<T> curNode = sentinel, temp = curNode;
         int col = 0, curLvl = 0;
 
         while (temp != null && curLvl <= maxLevels.get()) {
@@ -303,7 +303,7 @@ public class SkipList<K extends KochuDBSerde<K>, V extends KochuDBSerde<V>> {
                 if (temp != null) {
                     val = col == 0 ? "head"
                             : (temp.right == null) ? "tail"
-                                    : temp.isDeleted() ? "[" + temp.key.toString() + "]" : temp.key.toString();
+                                    : temp.isDeleted() ? "[" + temp.data.toString() + "]" : temp.data.toString();
                     temp = temp.up;
                 }
                 rows.get(curLvl++).add(val);
@@ -320,7 +320,7 @@ public class SkipList<K extends KochuDBSerde<K>, V extends KochuDBSerde<V>> {
             StringBuilder line = new StringBuilder();
 
             for (String key : rows.get(r))
-                line.append(String.format("%4.4s ", key == null ? "" : key));
+                line.append(String.format("%8.8s ", key == null ? "" : key));
 
             if (!"".equals(line.toString().trim()))
                 builder.append(line.append("\n"));

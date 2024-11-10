@@ -7,6 +7,7 @@ import static com.kochudb.k.K.VALUE_MAX_SIZE;
 import java.io.File;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Iterator;
@@ -26,6 +27,7 @@ import com.kochudb.server.KVStorage;
 import com.kochudb.tasks.LevelCompactor;
 import com.kochudb.tasks.MemTableFlusher;
 import com.kochudb.types.ByteArray;
+import com.kochudb.types.Record;
 
 /**
  * LSM Tree implementing basic operation on data store
@@ -37,12 +39,12 @@ public class LSMTree<K, V> implements KVStorage<ByteArray, ByteArray> {
     /**
      * SkipList for in-memory data
      */
-    SkipList<ByteArray, ByteArray> memTable;
+    SkipList<Record> memTable;
 
     /**
      * Deque of memTables is for handling failures by flushing thread
      */
-    Deque<SkipList<ByteArray, ByteArray>> memTableQueue;
+    Deque<SkipList<Record>> memTableQueue;
 
     /**
      * Size in bytes Threshold for triggering flushing of currently active skiplist
@@ -86,8 +88,8 @@ public class LSMTree<K, V> implements KVStorage<ByteArray, ByteArray> {
          * operations concurrently: iterate the queue holding skiplists, or iterate the
          * skiplist
          */
-        memTableQueue = new ConcurrentLinkedDeque<>();
-        memTable = new SkipList<ByteArray, ByteArray>();
+        memTableQueue = new ConcurrentLinkedDeque<SkipList<Record>>();
+        memTable = new SkipList<Record>();
 
         if (!dataDir.exists() || !dataDir.isDirectory()) {
             dataDir.mkdirs();
@@ -95,9 +97,7 @@ public class LSMTree<K, V> implements KVStorage<ByteArray, ByteArray> {
         }
 
         levels = new ArrayList<Level>();
-        for (int level = 0; level < NUM_LEVELS; level++) {
-            levels.add(new Level(level));
-        }
+        updateLevels();
 
         memTableExecutor = Executors.newSingleThreadExecutor((runnable) -> {
             return new Thread(runnable, "memtable-flusher");
@@ -111,19 +111,32 @@ public class LSMTree<K, V> implements KVStorage<ByteArray, ByteArray> {
     }
 
     /**
+     * update levels
+     */
+    public void updateLevels() {
+        List<Level> updated = new ArrayList<Level>();
+        for (int i = 0; i <= NUM_LEVELS; i++) {
+            Level level = new Level(i, this);
+            updated.add(level);
+        }
+        levels = updated;
+    }
+
+    /**
      * Search key in the data store and return the most recent value of the key
      * Search in-memory first, then disk
      */
     @Override
     public ByteArray get(ByteArray key) {
-        if (memTable.containsKey(key))
-            return memTable.get(key).val;
+        var search = new Record(key.bytes(), null, 0L);
+        if (memTable.containsKey(search))
+            return memTable.get(search).getValue();
 
-        Iterator<SkipList<ByteArray, ByteArray>> iter = memTableQueue.descendingIterator();
+        Iterator<SkipList<Record>> iter = memTableQueue.descendingIterator();
         while (iter.hasNext()) {
-            SkipList<ByteArray, ByteArray> skiplist = iter.next();
-            if (skiplist.containsKey(key))
-                return skiplist.get(key).val;
+            SkipList<Record> skiplist = iter.next();
+            if (skiplist.containsKey(search))
+                return skiplist.get(search).getValue();
         }
 
         for (Level level : levels) {
@@ -146,7 +159,7 @@ public class LSMTree<K, V> implements KVStorage<ByteArray, ByteArray> {
 
             try {
                 memTableQueue.add(memTable);
-                memTable = new SkipList<ByteArray, ByteArray>();
+                memTable = new SkipList<Record>();
             } finally {
                 memTableQueue.peekLast().writeLock.unlock();
             }
@@ -161,8 +174,9 @@ public class LSMTree<K, V> implements KVStorage<ByteArray, ByteArray> {
         if (val.length() > VALUE_MAX_SIZE)
             return "Error: Value too long. Max allowed size is 4MB".getBytes();
 
-        memTable.put(key, val);
-        curSkipListSize += key.length() + val.length();
+        var record = new Record(key, val, Instant.now().getEpochSecond());
+        memTable.put(record);
+        curSkipListSize += record.length();
 
         return "ok".getBytes();
     }
@@ -172,7 +186,7 @@ public class LSMTree<K, V> implements KVStorage<ByteArray, ByteArray> {
      */
     @Override
     public byte[] del(ByteArray key) {
-        memTable.put(key, new ByteArray());
+        memTable.put(new Record(key, null, 0));
         return "ok".getBytes();
     }
 }
