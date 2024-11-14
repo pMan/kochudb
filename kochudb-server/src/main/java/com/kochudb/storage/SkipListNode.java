@@ -1,16 +1,14 @@
 package com.kochudb.storage;
 
-import java.nio.charset.StandardCharsets;
-
 import com.kochudb.types.ByteArray;
 import com.kochudb.types.KochuDBSerde;
 
 /**
  * Skip list Element
  */
-public class SkipListNode<T extends KochuDBSerde<T>> {
+public class SkipListNode<T extends KochuDBSerde<T>> implements Comparable<T> {
 
-    T data;
+    KochuDBSerde<T> data;
 
     public boolean deleted;
 
@@ -23,8 +21,8 @@ public class SkipListNode<T extends KochuDBSerde<T>> {
      * @param key key
      * @param val value
      */
-    public SkipListNode(T node) {
-        this.data = node;
+    public SkipListNode(KochuDBSerde<T> data) {
+        this.data = data;
 
         left = null;
         right = null;
@@ -54,9 +52,13 @@ public class SkipListNode<T extends KochuDBSerde<T>> {
     }
 
     @Override
+    public int compareTo(T o) {
+        return getKey().compareTo(o.key());
+    }
+
+    @Override
     public String toString() {
-        return new String(getKey().bytes(), StandardCharsets.UTF_8) + ", "
-                + new String(getValue().bytes(), StandardCharsets.UTF_8);
+        return data.toString();
     }
 
 }

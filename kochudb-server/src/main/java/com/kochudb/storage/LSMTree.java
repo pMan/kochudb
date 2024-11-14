@@ -1,6 +1,7 @@
 package com.kochudb.storage;
 
 import static com.kochudb.k.K.LEVEL_ZERO_FILE_MAX_SIZE_KB;
+import static com.kochudb.k.K.NOT_FOUND;
 import static com.kochudb.k.K.NUM_LEVELS;
 import static com.kochudb.k.K.VALUE_MAX_SIZE;
 
@@ -144,7 +145,7 @@ public class LSMTree<K, V> implements KVStorage<ByteArray, ByteArray> {
             if (val != null)
                 return val;
         }
-        return new ByteArray();
+        return new ByteArray(NOT_FOUND);
     }
 
     /**
