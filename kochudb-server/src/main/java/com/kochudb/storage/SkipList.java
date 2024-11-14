@@ -66,7 +66,7 @@ public class SkipList<T extends KochuDBSerde<T>> {
         SkipListNode<T> cur = head;
 
         while (true) {
-            while (cur.right.data != null && cur.right.data.compareTo(key) <= 0)
+            while (cur.right.data != null && cur.right.compareTo(key) <= 0)
                 cur = cur.right;
 
             if (cur.down == null)
@@ -92,7 +92,7 @@ public class SkipList<T extends KochuDBSerde<T>> {
             if (found.data == null)
                 return null;
 
-            if (found.data.compareTo(key) == 0 && !found.isDeleted())
+            if (found.compareTo(key) == 0 && !found.isDeleted())
                 return found;
         } finally {
             readLock.unlock();
@@ -108,7 +108,7 @@ public class SkipList<T extends KochuDBSerde<T>> {
      */
     public boolean containsKey(T key) {
         SkipListNode<T> node = find(key);
-        return node.data != null && node.data.compareTo(key) == 0 && !node.isDeleted();
+        return node.data != null && node.compareTo(key) == 0 && !node.isDeleted();
     }
 
     /**
@@ -125,7 +125,7 @@ public class SkipList<T extends KochuDBSerde<T>> {
         try {
             found = find(node);
 
-            if (found.data != null && found.data.compareTo(node) == 0) {
+            if (found.data != null && found.compareTo(node) == 0) {
                 found.data = node;
                 writeLock.unlock();
                 return;
@@ -169,7 +169,7 @@ public class SkipList<T extends KochuDBSerde<T>> {
      */
     public boolean del(T node) {
         SkipListNode<T> found = find(node);
-        if (found.data != null && found.data.compareTo(node) == 0) {
+        if (found.data != null && found.compareTo(node) == 0) {
             found.delete();
             length--;
             size.getAndAdd(-(node.length()));

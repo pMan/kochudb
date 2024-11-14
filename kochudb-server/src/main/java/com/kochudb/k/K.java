@@ -4,7 +4,7 @@ public final class K {
 
     // props
     public static final String DEFAULT_PORT = "2222";
-    
+
     // 5 times the available cores
     public static final String DEFAULT_POOL_SIZE = Integer.toString(5 * Runtime.getRuntime().availableProcessors());
 
@@ -29,10 +29,11 @@ public final class K {
 
     public static final int NUM_LEVELS = 5;
 
-    // error codes
+    // error codes, messages
     public static final int ERR_INVALID_CLI_ARGS = 1;
     public static final int ERR_NO_DATA_DIR = 2;
     public static final int ERR_QUERIER = 3;
+    public static final String NOT_FOUND = "DOES_NOT_EXIST";
 
     // CLI
     public static final String USAGE_HELP = "" + "Invalid number of arguments\r\n\r\n" + "Correct usage:\r\n\t"

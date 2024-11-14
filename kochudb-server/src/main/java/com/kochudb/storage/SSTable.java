@@ -96,8 +96,8 @@ public class SSTable {
         SkipList<Record> skiplist = this.parseIndex();
         SkipListNode<Record> result = skiplist.find(new Record(searchKey, null, 0L));
 
-        if (result.getKey().compareTo(searchKey) == 0)
-            return result.data;
+        if (result.data != null && result.getKey().compareTo(searchKey) == 0)
+            return (Record) result.data;
 
         return null;
     }
