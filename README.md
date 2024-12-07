@@ -37,7 +37,7 @@ Use the shell scripts (`build-all.sh`, `start-server.sh`, `start-client.sh` in t
 ```
 > git clone https://github.com/pMan/kochudb.git
 > cd kochudb
-> mvn clean package -DskipTests
+> mvn clean install -DskipTests
 ```
 #### Run server
 ```
