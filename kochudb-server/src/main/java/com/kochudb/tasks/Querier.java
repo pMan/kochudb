@@ -6,6 +6,7 @@ import java.io.ObjectOutputStream;
 import java.lang.invoke.MethodHandles;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.concurrent.Callable;
 
 import org.apache.logging.log4j.LogManager;
@@ -13,7 +14,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.kochudb.server.KVStorage;
 import com.kochudb.shared.DTO;
-import com.kochudb.types.ByteArray;
+import com.kochudb.types.KochuDoc;
 
 public class Querier implements Callable<Boolean> {
 
@@ -21,10 +22,9 @@ public class Querier implements Callable<Boolean> {
 
     private Socket socket;
     private DTO dto;
-    KVStorage<ByteArray, ByteArray> storageEngine;
+    KVStorage storageEngine;
 
-    public Querier(Socket socket, KVStorage<ByteArray, ByteArray> storageEngine)
-            throws IOException, ClassNotFoundException {
+    public Querier(Socket socket, KVStorage storageEngine) throws IOException, ClassNotFoundException {
         this.socket = socket;
         ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
         this.dto = (DTO) ois.readObject();
@@ -36,16 +36,16 @@ public class Querier implements Callable<Boolean> {
     @Override
     public Boolean call() {
         String command = new String(dto.command(), StandardCharsets.UTF_8);
-        byte[] response = switch (command) {
-        case "get" -> storageEngine.get(new ByteArray(dto.key())).bytes();
-        case "set" -> storageEngine.set(new ByteArray(dto.key()), new ByteArray(dto.value()));
-        case "del" -> storageEngine.del(new ByteArray(dto.key()));
-        default -> "Invalid Operation".getBytes();
+        KochuDoc doc = switch (command) {
+        case "get" -> storageEngine.get(dto.key());
+        case "set" -> storageEngine.set(new KochuDoc(dto.key(), dto.value(), Instant.now().toEpochMilli()));
+        case "del" -> storageEngine.del(dto.key());
+        default -> new KochuDoc(null, new byte[] {}, 0L);
         };
 
         // add WAL here, serialize DTO
         ObjectOutputStream oos;
-        DTO resp = new DTO(dto.command(), dto.key(), dto.value(), response);
+        DTO resp = new DTO(dto.command(), dto.key(), dto.value(), doc.getValue().bytes());
 
         try {
             oos = new ObjectOutputStream(socket.getOutputStream());

@@ -1,18 +1,12 @@
 package com.kochudb.server;
 
-import com.kochudb.types.ByteArray;
+import com.kochudb.types.KochuDoc;
 
-/**
- * Key-Value based storage engine
- * 
- * @param <K> comparable, serializable, immutable key
- * @param <V> serializable, immutable key
- */
-public interface KVStorage<K extends ByteArray, V extends ByteArray> {
+public interface KVStorage {
 
-    public V get(K key);
+    public KochuDoc get(byte[] key);
 
-    public byte[] set(K key, V val);
+    public KochuDoc set(KochuDoc doc);
 
-    public byte[] del(K key);
+    public KochuDoc del(byte[] key);
 }

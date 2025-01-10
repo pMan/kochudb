@@ -20,7 +20,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.kochudb.types.ByteArray;
-import com.kochudb.types.Record;
+import com.kochudb.types.KochuDoc;
+import com.kochudb.utils.ByteUtil;
 import com.kochudb.utils.FileUtil;
 
 public class SSTable {
@@ -55,11 +56,11 @@ public class SSTable {
      * 
      * @return map of key and its corresponding offset
      */
-    public SkipList<Record> parseIndex() {
+    public SkipList parseIndex() {
         logger.debug("Reading index file: {}", this.indexFile);
 
         // Map<ByteArray, Long> keyToOffset = new TreeMap<>();
-        SkipList<Record> skipList = new SkipList<>();
+        SkipList skipList = new SkipList();
 
         try (RandomAccessFile raf = new RandomAccessFile(this.indexFile, "r")) {
             raf.seek(0);
@@ -74,12 +75,11 @@ public class SSTable {
                 // long offset = ByteUtil.bytesToLong(nextEightBytes);
 
                 // keyToOffset.put(new ByteArray(key), offset);
-                Record record = new Record(new ByteArray(key), new ByteArray(nextEightBytes),
-                        Instant.now().getEpochSecond());
+                KochuDoc record = new KochuDoc(key, nextEightBytes, Instant.now().getEpochSecond());
                 skipList.put(record);
             }
         } catch (FileNotFoundException e) {
-            return new SkipList<>();
+            return new SkipList();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -92,12 +92,12 @@ public class SSTable {
      * @param searchKey
      * @return KeyValueRecord
      */
-    public Record search(ByteArray searchKey) {
-        SkipList<Record> skiplist = this.parseIndex();
-        SkipListNode<Record> result = skiplist.find(new Record(searchKey, null, 0L));
+    public KochuDoc search(KochuDoc searchKey) {
+        SkipList skiplist = this.parseIndex();
+        SkipListNode result = skiplist.find(searchKey);
 
-        if (result.data != null && result.getKey().compareTo(searchKey) == 0)
-            return (Record) result.data;
+        if (result.data != null && result.data.compareTo(searchKey) == 0)
+            return result.data;
 
         return null;
     }
@@ -171,7 +171,7 @@ public class SSTable {
      * @return KeyValuePair object
      * @throws IOException
      */
-    public Record readRecord(Long offset) {
+    public KochuDoc readRecord(Long offset) {
         try (RandomAccessFile raf = new RandomAccessFile(dataFile, "r")) {
 
             byte[] timeBytes = readBytes(raf, offset, Long.BYTES);
@@ -188,11 +188,11 @@ public class SSTable {
 
             byte[] valueData = readBytes(raf, offset, valLen);
 
-            return Record.fromCompressed(keyData, valueData, timeBytes);
+            return new KochuDoc(keyData, valueData, ByteUtil.bytesToLong(timeBytes));
         } catch (FileNotFoundException e) {
-            return new Record(new byte[] {}, "File could not be found on the disk".getBytes(), 0);
+            return new KochuDoc(null, "File could not be found on the disk".getBytes(), 0);
         } catch (IOException e) {
-            return new Record(new byte[] {}, "Error encountered whie reading file".getBytes(), 0);
+            return new KochuDoc(null, "Error encountered whie reading file".getBytes(), 0);
         }
     }
 
@@ -219,13 +219,13 @@ public class SSTable {
      * @throws FileNotFoundException
      * @throws IOException
      */
-    public void persist(SkipList<Record> skipList) throws FileNotFoundException, IOException {
+    public void persist(SkipList skipList) throws FileNotFoundException, IOException {
         Map<ByteArray, Long> keyToOffsetMap = new TreeMap<>();
         try (RandomAccessFile dataFileObj = new RandomAccessFile(dataFile, "rw")) {
-            Iterator<SkipListNode<Record>> iterator = skipList.iterator();
+            Iterator<SkipListNode> iterator = skipList.iterator();
 
             while (iterator.hasNext()) {
-                SkipListNode<Record> listNode = iterator.next();
+                SkipListNode listNode = iterator.next();
 
                 long offset = appendData(dataFileObj, listNode.data.serialize());
 

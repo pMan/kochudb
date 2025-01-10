@@ -15,12 +15,11 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 import com.kochudb.storage.LSMTree;
 import com.kochudb.tasks.Querier;
-import com.kochudb.types.ByteArray;
 
 public class KochuDBServer extends Thread {
 
     private static ServerSocket serverSocket;
-    private KVStorage<ByteArray, ByteArray> storageEngine;
+    private KVStorage storageEngine;
     private ThreadPoolExecutor queryPool;
     private static boolean alive;
     private Queue<Future<Boolean>> queryResults;
@@ -34,7 +33,7 @@ public class KochuDBServer extends Thread {
         serverSocket = new ServerSocket(port);
         System.out.println("Server accepting connections on " + port);
 
-        storageEngine = new LSMTree<ByteArray, ByteArray>(context);
+        storageEngine = new LSMTree(context);
         queryPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(maxParallelQueries);
         queryResults = new LinkedList<Future<Boolean>>();
 

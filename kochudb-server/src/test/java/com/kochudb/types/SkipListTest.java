@@ -17,11 +17,11 @@ import com.kochudb.storage.SkipListNode;
 
 class SkipListTest {
 
-    private SkipList<Record> skipListUnderTest;
+    private SkipList skipListUnderTest;
 
     @BeforeEach
     void setUp() {
-        skipListUnderTest = new SkipList<Record>();
+        skipListUnderTest = new SkipList();
     }
 
     @Test
@@ -30,7 +30,7 @@ class SkipListTest {
         final ByteArray key = new ByteArray("t");
 
         // Run the test
-        final SkipListNode<Record> result = skipListUnderTest.find(new Record(key, null, 0L));
+        final SkipListNode result = skipListUnderTest.find(new KochuDoc(key, null, 0L));
 
         assertNull(result);
 
@@ -45,7 +45,7 @@ class SkipListTest {
         // Run the test
         // final SkipListNode result = skipListUnderTest.get(key);
 
-        assertNull(skipListUnderTest.find(new Record(new ByteArray(), null, 0L)));
+        assertNull(skipListUnderTest.find(new KochuDoc(new ByteArray(), null, 0L)));
     }
 
     @Test
@@ -54,7 +54,7 @@ class SkipListTest {
         final ByteArray key = new ByteArray("t");
 
         // Run the test
-        final boolean result = skipListUnderTest.containsKey(new Record(new ByteArray(), null, 0L));
+        final boolean result = skipListUnderTest.containsKey(new KochuDoc(new ByteArray(), null, 0L));
 
         // Verify the results
         assertFalse(result);
@@ -66,24 +66,22 @@ class SkipListTest {
         final ByteArray key = new ByteArray("t");
 
         // Run the test
-        skipListUnderTest
-                .put(new Record(new ByteArray("key".getBytes()), new ByteArray("value".getBytes()), 0L));
+        skipListUnderTest.put(new KochuDoc(new ByteArray("key".getBytes()), new ByteArray("value".getBytes()), 0L));
 
         // Verify the results
         assertArrayEquals("value".getBytes(),
-                skipListUnderTest.get(new Record("key".getBytes(), null, 0L)).getValue().byteArray);
+                skipListUnderTest.get(new KochuDoc("key".getBytes(), null, 0L)).getValue().byteArray);
     }
 
     @Test
     void testDel() {
         // Setup
         final ByteArray key = new ByteArray("t");
-        skipListUnderTest.put(new Record(new ByteArray(), null, 0L));
+        skipListUnderTest.put(new KochuDoc(new ByteArray(), null, 0L));
 
         // Run the test
-        final boolean result = skipListUnderTest.del(new Record(new ByteArray("k".getBytes()), null, 0L));
-        final boolean neg = skipListUnderTest
-                .del(new Record(new ByteArray("non-exising".getBytes()), null, 0L));
+        final boolean result = skipListUnderTest.del(new KochuDoc(new ByteArray("k".getBytes()), null, 0L));
+        final boolean neg = skipListUnderTest.del(new KochuDoc(new ByteArray("non-exising".getBytes()), null, 0L));
 
         // Verify the results
         assertTrue(result);
@@ -94,7 +92,7 @@ class SkipListTest {
     void testIterator() {
         // Setup
         // Run the test
-        final Iterator<SkipListNode<Record>> result = skipListUnderTest.iterator();
+        final Iterator<SkipListNode> result = skipListUnderTest.iterator();
 
         // Verify the results
     }

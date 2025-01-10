@@ -1,19 +1,19 @@
 package com.kochudb.storage;
 
 import com.kochudb.types.ByteArray;
-import com.kochudb.types.KochuDBSerde;
+import com.kochudb.types.KochuDoc;
 
 /**
  * Skip list Element
  */
-public class SkipListNode<T extends KochuDBSerde<T>> implements Comparable<T> {
+public class SkipListNode implements Comparable<KochuDoc> {
 
-    KochuDBSerde<T> data;
+    KochuDoc data;
 
     public boolean deleted;
 
     // references to all four neighbors
-    public SkipListNode<T> left, right, up, down;
+    public SkipListNode left, right, up, down;
 
     /**
      * An element in the SkipList, stores key and value
@@ -21,7 +21,7 @@ public class SkipListNode<T extends KochuDBSerde<T>> implements Comparable<T> {
      * @param key key
      * @param val value
      */
-    public SkipListNode(KochuDBSerde<T> data) {
+    public SkipListNode(KochuDoc data) {
         this.data = data;
 
         left = null;
@@ -44,16 +44,16 @@ public class SkipListNode<T extends KochuDBSerde<T>> implements Comparable<T> {
     }
 
     public ByteArray getKey() {
-        return data.key();
+        return data.getKey();
     }
 
     public ByteArray getValue() {
-        return data.value();
+        return data.getValue();
     }
 
     @Override
-    public int compareTo(T o) {
-        return getKey().compareTo(o.key());
+    public int compareTo(KochuDoc o) {
+        return getKey().compareTo(o.getKey());
     }
 
     @Override

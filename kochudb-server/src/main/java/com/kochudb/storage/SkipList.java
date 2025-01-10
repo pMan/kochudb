@@ -10,7 +10,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
-import com.kochudb.types.KochuDBSerde;
+import com.kochudb.types.KochuDoc;
 
 /**
  * SkipList is a probabilistic list that offers average O(log n) runtime for
@@ -18,13 +18,13 @@ import com.kochudb.types.KochuDBSerde;
  * 
  * This implementation is thread safe. Delete operation is a soft-delete.
  */
-public class SkipList<T extends KochuDBSerde<T>> {
+public class SkipList {
 
     private AtomicInteger maxLevels;
     private int curLevel, length;
     private AtomicLong size;
 
-    private SkipListNode<T> sentinel, head, tail;
+    private SkipListNode sentinel, head, tail;
 
     public final WriteLock writeLock;
     public final ReadLock readLock;
@@ -34,8 +34,8 @@ public class SkipList<T extends KochuDBSerde<T>> {
      * Constructor
      */
     public SkipList() {
-        head = new SkipListNode<T>(null);
-        tail = new SkipListNode<T>(null);
+        head = new SkipListNode(null);
+        tail = new SkipListNode(null);
 
         head.right = tail;
         tail.left = head;
@@ -55,18 +55,18 @@ public class SkipList<T extends KochuDBSerde<T>> {
     }
 
     /**
-     * find the SkipListNode2<K> by the key. If not present in SkipList, find the
-     * immediate left SkipListNode2<T> which has the floor value of key
-     * (floorSkipListNode2(key))
+     * find the SkipListNode2<K> by the doc. If not present in SkipList, find the
+     * immediate left SkipListNode2 which has the floor value of doc
+     * (floorSkipListNode2(doc))
      *
-     * @param key key
-     * @return a SkipListNode2<K> with the 'key' of floor(key)
+     * @param doc doc
+     * @return a SkipListNode2<K> with the 'doc' of floor(doc)
      */
-    public SkipListNode<T> find(T key) {
-        SkipListNode<T> cur = head;
+    public SkipListNode find(KochuDoc doc) {
+        SkipListNode cur = head;
 
         while (true) {
-            while (cur.right.data != null && cur.right.compareTo(key) <= 0)
+            while (cur.right.data != null && cur.right.compareTo(doc) <= 0)
                 cur = cur.right;
 
             if (cur.down == null)
@@ -78,21 +78,21 @@ public class SkipList<T extends KochuDBSerde<T>> {
     }
 
     /**
-     * find a SkipListNode2<K> with input key as key and return it. If not present,
+     * find a SkipListNode2<K> with input doc as doc and return it. If not present,
      * return null;
      *
-     * @param key key
-     * @return a SkipListNode2<T> or null
+     * @param doc doc
+     * @return a SkipListNode2 or null
      */
-    public SkipListNode<T> get(T key) {
+    public SkipListNode get(KochuDoc doc) {
         readLock.lock();
         try {
-            SkipListNode<T> found = find(key);
+            SkipListNode found = find(doc);
 
             if (found.data == null)
                 return null;
 
-            if (found.compareTo(key) == 0 && !found.isDeleted())
+            if (found.compareTo(doc) == 0 && !found.isDeleted())
                 return found;
         } finally {
             readLock.unlock();
@@ -101,37 +101,37 @@ public class SkipList<T extends KochuDBSerde<T>> {
     }
 
     /**
-     * Does the skiplist contain a node with given key?
+     * Does the skiplist contain a node with given doc?
      * 
-     * @param key
+     * @param doc
      * @return
      */
-    public boolean containsKey(T key) {
-        SkipListNode<T> node = find(key);
-        return node.data != null && node.compareTo(key) == 0 && !node.isDeleted();
+    public boolean containsKey(KochuDoc doc) {
+        SkipListNode node = find(doc);
+        return node.data != null && node.compareTo(doc) == 0 && !node.isDeleted();
     }
 
     /**
-     * add a new SkipListNode2<K> if a SkipListNode2<K> with same key was not found.
-     * Update if a SkipListNode2<K> with same key was found.
+     * add a new SkipListNode2<K> if a SkipListNode2<K> with same doc was not found.
+     * Update if a SkipListNode2<K> with same doc was found.
      *
-     * @param key key
+     * @param doc doc
      * @param val value
      */
-    public void put(T node) {
-        SkipListNode<T> found = null, cur = null;
+    public void put(KochuDoc doc) {
+        SkipListNode found = null, cur = null;
 
         writeLock.lock();
         try {
-            found = find(node);
+            found = find(doc);
 
-            if (found.data != null && found.compareTo(node) == 0) {
-                found.data = node;
+            if (found.data != null && found.compareTo(doc) == 0) {
+                found.data = doc;
                 writeLock.unlock();
                 return;
             }
 
-            cur = new SkipListNode<T>(node);
+            cur = new SkipListNode(doc);
             insertRight(found, cur);
         } finally {
             if (writeLock.isHeldByCurrentThread())
@@ -157,22 +157,22 @@ public class SkipList<T extends KochuDBSerde<T>> {
         }
 
         length++;
-        size.getAndAdd(node.length());
+        size.getAndAdd(doc.length());
     }
 
     /**
-     * delete the SkipListNode2<K> identified by the key
+     * delete the SkipListNode2<K> identified by the doc
      *
-     * @param key key
+     * @param doc doc
      * @return true if a SkipListNode2<K> was removed, false if SkipListNode2<K> was
      *         not found
      */
-    public boolean del(T node) {
-        SkipListNode<T> found = find(node);
-        if (found.data != null && found.compareTo(node) == 0) {
+    public boolean del(KochuDoc doc) {
+        SkipListNode found = find(doc);
+        if (found.data != null && found.compareTo(doc) == 0) {
             found.delete();
             length--;
-            size.getAndAdd(-(node.length()));
+            size.getAndAdd(-(doc.length()));
             return true;
         }
         return false;
@@ -200,8 +200,8 @@ public class SkipList<T extends KochuDBSerde<T>> {
      * add a new layer to the top
      */
     private void addNewLayer() {
-        SkipListNode<T> h = new SkipListNode<T>(null);
-        SkipListNode<T> t = new SkipListNode<T>(null);
+        SkipListNode h = new SkipListNode(null);
+        SkipListNode t = new SkipListNode(null);
 
         h.right = t;
         t.left = h;
@@ -223,8 +223,8 @@ public class SkipList<T extends KochuDBSerde<T>> {
      * @param q SkipListNode2
      * @return SkipListNode2
      */
-    private SkipListNode<T> addNewNodeToTower(SkipListNode<T> p, SkipListNode<T> q) {
-        SkipListNode<T> dummy = new SkipListNode<T>(q.data);
+    private SkipListNode addNewNodeToTower(SkipListNode p, SkipListNode q) {
+        SkipListNode dummy = new SkipListNode(q.data);
 
         dummy.left = p;
         dummy.right = p.right;
@@ -243,7 +243,7 @@ public class SkipList<T extends KochuDBSerde<T>> {
      * @param p SkipListNode2
      * @param q SkipListNode2
      */
-    private void insertRight(SkipListNode<T> p, SkipListNode<T> q) {
+    private void insertRight(SkipListNode p, SkipListNode q) {
         p.right.left = q;
         q.right = p.right;
 
@@ -256,11 +256,11 @@ public class SkipList<T extends KochuDBSerde<T>> {
      *
      * @return Iterable<SkipListNode2>
      */
-    public Iterator<SkipListNode<T>> iterator() {
-        return new Iterator<SkipListNode<T>>() {
-            SkipListNode<T> currentNode;
+    public Iterator<SkipListNode> iterator() {
+        return new Iterator<SkipListNode>() {
+            SkipListNode currentNode;
 
-            public Iterator<SkipListNode<T>> init() {
+            public Iterator<SkipListNode> init() {
                 currentNode = sentinel;
                 while (currentNode.down != null)
                     currentNode = currentNode.down;
@@ -269,7 +269,7 @@ public class SkipList<T extends KochuDBSerde<T>> {
             }
 
             @Override
-            public SkipListNode<T> next() {
+            public SkipListNode next() {
                 currentNode = currentNode.right;
                 return currentNode;
             }
@@ -293,7 +293,7 @@ public class SkipList<T extends KochuDBSerde<T>> {
     @Override
     public String toString() {
         List<List<String>> rows = new ArrayList<>();
-        SkipListNode<T> curNode = sentinel, temp = curNode;
+        SkipListNode curNode = sentinel, temp = curNode;
         int col = 0, curLvl = 0;
 
         while (temp != null && curLvl <= maxLevels.get()) {
@@ -319,8 +319,8 @@ public class SkipList<T extends KochuDBSerde<T>> {
         for (int r = rows.size() - 1; r >= 0; r--) {
             StringBuilder line = new StringBuilder();
 
-            for (String key : rows.get(r))
-                line.append(String.format("%8.8s ", key == null ? "" : key));
+            for (String doc : rows.get(r))
+                line.append(String.format("%8.8s ", doc == null ? "" : doc));
 
             if (!"".equals(line.toString().trim()))
                 builder.append(line.append("\n"));

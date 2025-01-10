@@ -1,7 +1,6 @@
 package com.kochudb.storage;
 
 import static com.kochudb.k.K.LEVEL_ZERO_FILE_MAX_SIZE_KB;
-import static com.kochudb.k.K.NOT_FOUND;
 import static com.kochudb.k.K.NUM_LEVELS;
 import static com.kochudb.k.K.VALUE_MAX_SIZE;
 
@@ -27,25 +26,24 @@ import org.apache.logging.log4j.Logger;
 import com.kochudb.server.KVStorage;
 import com.kochudb.tasks.LevelCompactor;
 import com.kochudb.tasks.MemTableFlusher;
-import com.kochudb.types.ByteArray;
-import com.kochudb.types.Record;
+import com.kochudb.types.KochuDoc;
 
 /**
  * LSM Tree implementing basic operation on data store
  */
-public class LSMTree<K, V> implements KVStorage<ByteArray, ByteArray> {
+public class LSMTree implements KVStorage {
 
     private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
 
     /**
      * SkipList for in-memory data
      */
-    SkipList<Record> memTable;
+    SkipList memTable;
 
     /**
      * Deque of memTables is for handling failures by flushing thread
      */
-    Deque<SkipList<Record>> memTableQueue;
+    Deque<SkipList> memTableQueue;
 
     /**
      * Size in bytes Threshold for triggering flushing of currently active skiplist
@@ -89,8 +87,8 @@ public class LSMTree<K, V> implements KVStorage<ByteArray, ByteArray> {
          * operations concurrently: iterate the queue holding skiplists, or iterate the
          * skiplist
          */
-        memTableQueue = new ConcurrentLinkedDeque<SkipList<Record>>();
-        memTable = new SkipList<Record>();
+        memTableQueue = new ConcurrentLinkedDeque<SkipList>();
+        memTable = new SkipList();
 
         if (!dataDir.exists() || !dataDir.isDirectory()) {
             dataDir.mkdirs();
@@ -128,24 +126,24 @@ public class LSMTree<K, V> implements KVStorage<ByteArray, ByteArray> {
      * Search in-memory first, then disk
      */
     @Override
-    public ByteArray get(ByteArray key) {
-        var search = new Record(key.bytes(), null, 0L);
+    public KochuDoc get(byte[] key) {
+        var search = new KochuDoc(key, null, 0L);
         if (memTable.containsKey(search))
-            return memTable.get(search).getValue();
+            return memTable.get(search).data;
 
-        Iterator<SkipList<Record>> iter = memTableQueue.descendingIterator();
+        Iterator<SkipList> iter = memTableQueue.descendingIterator();
         while (iter.hasNext()) {
-            SkipList<Record> skiplist = iter.next();
+            SkipList skiplist = iter.next();
             if (skiplist.containsKey(search))
-                return skiplist.get(search).getValue();
+                return skiplist.get(search).data;
         }
 
         for (Level level : levels) {
-            ByteArray val = level.search(key);
-            if (val != null)
-                return val;
+            KochuDoc doc = level.search(search);
+            if (doc != null)
+                return doc;
         }
-        return new ByteArray(NOT_FOUND);
+        return new KochuDoc(null, new byte[] {}, 0);
     }
 
     /**
@@ -154,13 +152,13 @@ public class LSMTree<K, V> implements KVStorage<ByteArray, ByteArray> {
      * is restricted to 4MB
      */
     @Override
-    public byte[] set(ByteArray key, ByteArray val) {
+    public KochuDoc set(KochuDoc doc) {
         if (curSkipListSize >= maxSkipListSize) {
             memTable.writeLock.lock();
 
             try {
                 memTableQueue.add(memTable);
-                memTable = new SkipList<Record>();
+                memTable = new SkipList();
             } finally {
                 memTableQueue.peekLast().writeLock.unlock();
             }
@@ -169,25 +167,26 @@ public class LSMTree<K, V> implements KVStorage<ByteArray, ByteArray> {
             curSkipListSize = 0;
         }
 
-        if (key.length() > 255)
-            return "Error: Key too long. Max allowed size is 256".getBytes();
+        if (doc.getKey().length() > 255)
+            return new KochuDoc(null, "Error: Key too long. Max allowed size is 256".getBytes(), 0L);
+        ;
 
-        if (val.length() > VALUE_MAX_SIZE)
-            return "Error: Value too long. Max allowed size is 4MB".getBytes();
+        if (doc.getValue().length() > VALUE_MAX_SIZE)
+            return new KochuDoc(null, "Error: Value too long. Max allowed size is 4MB".getBytes(), 0L);
 
-        var record = new Record(key, val, Instant.now().getEpochSecond());
-        memTable.put(record);
-        curSkipListSize += record.length();
+        memTable.put(doc);
+        curSkipListSize += doc.length();
 
-        return "ok".getBytes();
+        return doc;
     }
 
     /**
      * Delete key from data store
      */
     @Override
-    public byte[] del(ByteArray key) {
-        memTable.put(new Record(key, null, 0));
-        return "ok".getBytes();
+    public KochuDoc del(byte[] key) {
+        KochuDoc doc = new KochuDoc(key, null, Instant.now().toEpochMilli());
+        memTable.put(doc);
+        return doc;
     }
 }
