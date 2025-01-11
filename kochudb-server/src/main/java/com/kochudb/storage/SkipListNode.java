@@ -58,7 +58,7 @@ public class SkipListNode implements Comparable<KochuDoc> {
 
     @Override
     public String toString() {
-        return data.toString();
+        return data == null ? "null" : data.toString();
     }
 
 }

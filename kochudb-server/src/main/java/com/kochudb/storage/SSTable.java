@@ -11,7 +11,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.lang.invoke.MethodHandles;
-import java.time.Instant;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
@@ -75,8 +74,8 @@ public class SSTable {
                 // long offset = ByteUtil.bytesToLong(nextEightBytes);
 
                 // keyToOffset.put(new ByteArray(key), offset);
-                KochuDoc record = new KochuDoc(key, nextEightBytes, Instant.now().getEpochSecond());
-                skipList.put(record);
+                KochuDoc doc = new KochuDoc(key, nextEightBytes, 0L);
+                skipList.put(doc);
             }
         } catch (FileNotFoundException e) {
             return new SkipList();
@@ -89,14 +88,14 @@ public class SSTable {
     /**
      * search this SSTable segment for a given key
      * 
-     * @param searchKey
-     * @return KeyValueRecord
+     * @param doc
+     * @return KochuDoc
      */
-    public KochuDoc search(KochuDoc searchKey) {
+    public KochuDoc search(KochuDoc doc) {
         SkipList skiplist = this.parseIndex();
-        SkipListNode result = skiplist.find(searchKey);
+        SkipListNode result = skiplist.find(doc);
 
-        if (result.data != null && result.data.compareTo(searchKey) == 0)
+        if (result.data != null && result.data.compareTo(doc) == 0)
             return result.data;
 
         return null;
@@ -171,7 +170,7 @@ public class SSTable {
      * @return KeyValuePair object
      * @throws IOException
      */
-    public KochuDoc readRecord(Long offset) {
+    public KochuDoc readKochuDoc(Long offset) {
         try (RandomAccessFile raf = new RandomAccessFile(dataFile, "r")) {
 
             byte[] timeBytes = readBytes(raf, offset, Long.BYTES);
@@ -188,7 +187,7 @@ public class SSTable {
 
             byte[] valueData = readBytes(raf, offset, valLen);
 
-            return new KochuDoc(keyData, valueData, ByteUtil.bytesToLong(timeBytes));
+            return KochuDoc.deserialize(keyData, valueData, ByteUtil.bytesToLong(timeBytes));
         } catch (FileNotFoundException e) {
             return new KochuDoc(null, "File could not be found on the disk".getBytes(), 0);
         } catch (IOException e) {

@@ -32,6 +32,10 @@ public class KochuDoc implements Comparable<KochuDoc> {
         this.lastModified = modifiedAt;
     }
 
+    public static KochuDoc deserialize(byte[] key, byte[] value, long timestamp) {
+        return new KochuDoc(unzip(key), unzip(value), timestamp);
+    }
+
     /**
      * create an instance of this class from bytes
      * 
@@ -162,8 +166,12 @@ public class KochuDoc implements Comparable<KochuDoc> {
     @Override
     public int compareTo(KochuDoc o) {
         int res = this.getKey().compareTo(o.getKey());
-        if (res == 0)
-            return (int) (o.lastModified - this.lastModified);
         return res;
     }
+
+    @Override
+    public String toString() {
+        return key + ", " + value + ", " + lastModified;
+    }
+
 }

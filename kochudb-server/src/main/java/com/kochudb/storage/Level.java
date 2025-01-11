@@ -66,11 +66,11 @@ public class Level {
      */
     public KochuDoc search(KochuDoc doc) {
         for (SSTable sSTable : sSTables) {
-            KochuDoc indexRecord = sSTable.search(doc);
-            if (indexRecord != null) {
+            KochuDoc indexDoc = sSTable.search(doc);
+            if (indexDoc != null) {
 
-                long offset = ByteUtil.bytesToLong(indexRecord.getValue().bytes());
-                KochuDoc data = sSTable.readRecord(offset);
+                long offset = ByteUtil.bytesToLong(indexDoc.getValue().bytes());
+                KochuDoc data = sSTable.readKochuDoc(offset);
                 return data;
             }
         }
@@ -99,18 +99,18 @@ public class Level {
         long maxFileSizeInLevel = computeMaxFileSizeInLevel(level + 1);
         while (!keyValueHeap.isEmpty()) {
             Object[] objArray = keyValueHeap.poll();
-            KochuDoc record = (KochuDoc) objArray[0];
+            KochuDoc doc = (KochuDoc) objArray[0];
 
-            while (!keyValueHeap.isEmpty() && record.compareTo((KochuDoc) keyValueHeap.peek()[0]) == 0) {
+            while (!keyValueHeap.isEmpty() && doc.compareTo((KochuDoc) keyValueHeap.peek()[0]) == 0) {
                 objArray = keyValueHeap.poll();
-                record = (KochuDoc) objArray[0];
+                doc = (KochuDoc) objArray[0];
             }
 
-            Long offset = ByteUtil.bytesToLong(((ByteArray) record.getValue()).bytes());
+            Long offset = ByteUtil.bytesToLong(((ByteArray) doc.getValue()).bytes());
             SSTable sSTable = (SSTable) objArray[1];
 
-            KochuDoc record2 = sSTable.readRecord(offset);
-            skipList.put(record2);
+            KochuDoc dataDoc = sSTable.readKochuDoc(offset);
+            skipList.put(dataDoc);
 
             if (skipList.size() >= maxFileSizeInLevel) {
                 SSTable newSegment = new SSTable(level + 1);

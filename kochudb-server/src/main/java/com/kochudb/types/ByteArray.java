@@ -1,6 +1,7 @@
 package com.kochudb.types;
 
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 
 /**
  * A comparable, serializable, immutable byte[] that implements KochuDBSerde
@@ -49,7 +50,7 @@ public class ByteArray implements Comparable<ByteArray>, Serializable {
 
     @Override
     public String toString() {
-        return new String(byteArray);
+        return byteArray == null ? "null" : new String(byteArray, StandardCharsets.UTF_8);
     }
 
 }
