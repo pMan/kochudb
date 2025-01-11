@@ -58,10 +58,10 @@ class SegmentTest {
     static void testReadIndexFile() {
         // Setup
         // Run the test
-        final SkipList<Record> result = seg.parseIndex();
+        final SkipList result = seg.parseIndex();
 
-        assertTrue(result.containsKey(new Record("t".getBytes(), null, 0L)));
-        assertEquals(0L, result.get(new Record("t".getBytes(), null, 0L)));
+        assertTrue(result.containsKey(new KochuDoc("t".getBytes(), null, 0L)));
+        assertEquals(0L, result.get(new KochuDoc("t".getBytes(), null, 0L)));
     }
 
     @Test

@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import com.kochudb.storage.LSMTree;
 import com.kochudb.types.ByteArray;
+import com.kochudb.types.KochuDoc;
 
 class LSMTreeTest {
 
@@ -33,10 +34,11 @@ class LSMTreeTest {
     void testSetAndGet() throws UnsupportedEncodingException {
         ByteArray key = new ByteArray("Key".getBytes());
         ByteArray val = new ByteArray("Val".getBytes());
-        byte[] result = LSMTreeTest.lsmt.set(key, val);
 
-        assertEquals("ok", new String(result, "utf-8"));
-        assertEquals("Val", new String(LSMTreeTest.lsmt.get(key).bytes(), "utf-8"));
+        KochuDoc doc = new KochuDoc(key, val, 0L);
+        KochuDoc result = LSMTreeTest.lsmt.set(doc);
+
+        assertEquals("Val", new String(LSMTreeTest.lsmt.get("Key".getBytes()).getValue().bytes(), "utf-8"));
     }
 
     @Test

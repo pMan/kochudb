@@ -10,27 +10,30 @@ import static com.kochudb.utils.ByteUtil.longToBytes;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import com.kochudb.utils.ByteUtil;
 
-public record Record(ByteArray key, ByteArray value, long lastModified) implements KochuDBSerde<Record> {
+public class KochuDoc implements Comparable<KochuDoc> {
 
-    public Record(byte[] key, byte[] value, long timestamp) {
-        this(new ByteArray(key), new ByteArray(value), timestamp);
+    ByteArray key, value;
+    long lastModified;
+
+    public KochuDoc(ByteArray key, ByteArray value, long modifiedAt) {
+        this.key = key;
+        this.value = value;
+        this.lastModified = modifiedAt;
     }
 
-    /**
-     * create a new object from compressed key and value bytes
-     * 
-     * @param key   compressed key
-     * @param value compressed value
-     * @return this
-     */
-    public static Record fromCompressed(byte[] key, byte[] value, byte[] timstamp) {
-        return new Record(new ByteArray(unzip(key)), new ByteArray(unzip(value)), bytesToLong(timstamp));
+    public KochuDoc(byte[] key, byte[] value, long modifiedAt) {
+        this.key = new ByteArray(key);
+        this.value = new ByteArray(value);
+        this.lastModified = modifiedAt;
+    }
+
+    public static KochuDoc deserialize(byte[] key, byte[] value, long timestamp) {
+        return new KochuDoc(unzip(key), unzip(value), timestamp);
     }
 
     /**
@@ -39,7 +42,7 @@ public record Record(ByteArray key, ByteArray value, long lastModified) implemen
      * @param bytes
      * @return
      */
-    public static Record deserialize(byte[] bytes) {
+    public static KochuDoc deserialize(byte[] bytes) {
         byte[] timeBytes = new byte[Long.BYTES];
         int curPos = 0;
 
@@ -64,7 +67,7 @@ public record Record(ByteArray key, ByteArray value, long lastModified) implemen
         byte[] value = new byte[valueSize];
         System.arraycopy(bytes, curPos, value, 0, value.length);
 
-        return new Record(unzip(key), unzip(value), timestamp);
+        return new KochuDoc(unzip(key), unzip(value), timestamp);
     }
 
     /**
@@ -132,40 +135,43 @@ public record Record(ByteArray key, ByteArray value, long lastModified) implemen
         return zippedBytes;
     }
 
-    @Override
-    public int compareTo(Record o) {
-        return this.key.compareTo(o.key);
-    }
-
-    @Override
-    public int length() {
-        return key.length() + value.length() + Long.BYTES;
-    }
-
-    @Override
-    public int compareTo(ByteArray o) {
-        return key().compareTo(o);
-    }
-
-    @Override
-    public ByteArray key() {
+    public ByteArray getKey() {
         return key;
     }
 
-    @Override
-    public ByteArray value() {
+    public void setKey(ByteArray key) {
+        this.key = key;
+    }
+
+    public ByteArray getValue() {
         return value;
     }
 
-    @Override
-    public long lastModified() {
+    public void setValue(ByteArray value) {
+        this.value = value;
+    }
+
+    public long getLastModified() {
         return lastModified;
+    }
+
+    public void setLastModified(long lastModified) {
+        this.lastModified = lastModified;
+    }
+
+    public int length() {
+        return this.key.length() + this.value.length() + Long.BYTES;
+    }
+
+    @Override
+    public int compareTo(KochuDoc o) {
+        int res = this.getKey().compareTo(o.getKey());
+        return res;
     }
 
     @Override
     public String toString() {
-        return "[key: " + new String(key().bytes(), StandardCharsets.UTF_8) + ", value: "
-                + new String(value().bytes(), StandardCharsets.UTF_8) + ", modified: " + lastModified + "]";
-
+        return key + ", " + value + ", " + lastModified;
     }
+
 }

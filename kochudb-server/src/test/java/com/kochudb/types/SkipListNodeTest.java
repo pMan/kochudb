@@ -16,13 +16,12 @@ import com.kochudb.storage.SkipListNode;
 @TestInstance(Lifecycle.PER_CLASS)
 class SkipListNodeTest {
 
-    SkipListNode<Record> node;
+    SkipListNode node;
 
     @BeforeAll
     public void setUpBeforeAll() {
-        node = new SkipListNode<Record>(
-                new Record(new ByteArray("Key".getBytes()), new ByteArray("Value".getBytes()), 0L));
-        node.right = new SkipListNode<Record>(new Record(new ByteArray(), null, 0L));
+        node = new SkipListNode(new KochuDoc("Key".getBytes(), "Value".getBytes(), 0L));
+        node.right = new SkipListNode(new KochuDoc(new byte[] {}, null, 0L));
     }
 
     @BeforeEach
