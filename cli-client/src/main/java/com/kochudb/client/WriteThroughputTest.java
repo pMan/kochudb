@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Random;
 
-import com.kochudb.shared.DTO;
+import com.kochudb.shared.Request;
 
 // https://math.hws.edu/eck/cs225/s10/lab3
 public class WriteThroughputTest {
@@ -200,13 +200,13 @@ public class WriteThroughputTest {
         for (Map.Entry<String, String> e : map.entrySet()) {
             socket = new Socket("localhost", 2222);
 
-            DTO dto = new DTO("set".getBytes(), e.getKey().getBytes(), e.getValue().getBytes());
+            Request dto = new Request("set".getBytes(), e.getKey().getBytes(), e.getValue().getBytes());
             ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
             oos.writeObject(dto);
             oos.flush();
 
             ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-            DTO res = (DTO) ois.readObject();
+            Request res = (Request) ois.readObject();
             // AssertEquals(res.getData(), "ok");
         }
 

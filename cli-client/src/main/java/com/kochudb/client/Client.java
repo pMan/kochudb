@@ -11,7 +11,8 @@ import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Set;
 
-import com.kochudb.shared.DTO;
+import com.kochudb.shared.Request;
+import com.kochudb.shared.Response;
 
 public class Client {
     public static boolean alive = true;
@@ -22,13 +23,15 @@ public class Client {
 
     static Socket socket = null;
 
+    private static String prompt = "> ";
+
     public static void main(String[] args) throws UnknownHostException, ClassNotFoundException, IOException {
         // load test data
         if (args.length == 1 && "load".equals(args[0])) {
             WriteThroughputTest.main(args);
             return;
         }
-        
+
         Runtime.getRuntime().addShutdownHook(new Thread() {
             public void run() {
                 alive = false;
@@ -42,7 +45,7 @@ public class Client {
         Scanner scanner = new Scanner(System.in);
         String input = null;
 
-        System.out.print("> ");
+        System.out.print(prompt);
 
         while (alive && scanner.hasNextLine()) {
             try {
@@ -56,20 +59,22 @@ public class Client {
                     continue;
                 }
 
-                DTO dTO = createReq(input);
+                Request dto = createReq(input);
                 socket = new Socket("localhost", 2222);
 
                 ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-                oos.writeObject(dTO);
+                oos.writeObject(dto);
 
                 ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-                DTO res = (DTO) ois.readObject();
+                Response res = (Response) ois.readObject();
 
-                System.out.println(new String(res.response(), StandardCharsets.UTF_8));
+                System.out.println(new String(res.value(), StandardCharsets.UTF_8));
 
-                System.out.print("> ");
+                System.out.print(prompt);
+
             } catch (Exception e) {
-                System.out.println("Invalid input\n> ");
+                System.out.println("Invalid input");
+                System.out.print(prompt);
             }
         }
         scanner.close();
@@ -83,7 +88,7 @@ public class Client {
 
     }
 
-    static DTO createReq(String input) {
+    static Request createReq(String input) {
         if (input.length() < 3 || input.charAt(3) != ' ')
             throw new IllegalArgumentException("Invalid input");
 
@@ -102,9 +107,9 @@ public class Client {
         if (key == null)
             key = input.substring(3).trim();
 
-        DTO dto = switch (op) {
-        case "get", "del" -> new DTO(op, key, null);
-        case "set" -> new DTO(op, key, val.getBytes());
+        Request dto = switch (op) {
+        case "get", "del" -> new Request(op, key, null);
+        case "set" -> new Request(op, key, val.getBytes());
         default -> throw new IllegalArgumentException("Unexpected operation: " + op);
         };
 
