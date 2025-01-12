@@ -13,21 +13,23 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.kochudb.server.KVStorage;
-import com.kochudb.shared.DTO;
+import com.kochudb.shared.Request;
+import com.kochudb.shared.Response;
 import com.kochudb.types.KochuDoc;
+import com.kochudb.utils.ByteUtil;
 
 public class Querier implements Callable<Boolean> {
 
     private static final Logger logger = LogManager.getLogger(MethodHandles.lookup().lookupClass());
 
     private Socket socket;
-    private DTO dto;
+    private Request dto;
     KVStorage storageEngine;
 
     public Querier(Socket socket, KVStorage storageEngine) throws IOException, ClassNotFoundException {
         this.socket = socket;
         ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-        this.dto = (DTO) ois.readObject();
+        this.dto = (Request) ois.readObject();
         this.storageEngine = storageEngine;
 
         Thread.currentThread().setName("querier");
@@ -40,12 +42,13 @@ public class Querier implements Callable<Boolean> {
         case "get" -> storageEngine.get(dto.key());
         case "set" -> storageEngine.set(new KochuDoc(dto.key(), dto.value(), Instant.now().toEpochMilli()));
         case "del" -> storageEngine.del(dto.key());
-        default -> new KochuDoc(null, new byte[] {}, 0L);
+        default -> new KochuDoc(null, "Invalid Operation".getBytes(), 0L);
         };
 
         // add WAL here, serialize DTO
         ObjectOutputStream oos;
-        DTO resp = new DTO(dto.command(), dto.key(), dto.value(), doc.getValue().bytes());
+        Response resp = new Response(doc.getKey().bytes(), doc.getValue().bytes(),
+                ByteUtil.longToBytes(doc.getLastModified()));
 
         try {
             oos = new ObjectOutputStream(socket.getOutputStream());

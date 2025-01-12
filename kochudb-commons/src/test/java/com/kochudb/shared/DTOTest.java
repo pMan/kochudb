@@ -11,11 +11,11 @@ import javax.xml.stream.events.StartDocument;
 
 class DTOTest {
 
-    private DTO requestUnderTest;
+    private Request requestUnderTest;
 
     @BeforeEach
     void setUp() {
-        requestUnderTest = new DTO("com".getBytes(), "key".getBytes(), "val".getBytes());
+        requestUnderTest = new Request("com".getBytes(), "key".getBytes(), "val".getBytes());
     }
 
     @Test
