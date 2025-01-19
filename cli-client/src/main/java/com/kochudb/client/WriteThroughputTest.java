@@ -12,6 +12,7 @@ import java.util.Queue;
 import java.util.Random;
 
 import com.kochudb.shared.Request;
+import com.kochudb.shared.Response;
 
 // https://math.hws.edu/eck/cs225/s10/lab3
 public class WriteThroughputTest {
@@ -206,7 +207,7 @@ public class WriteThroughputTest {
             oos.flush();
 
             ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-            Request res = (Request) ois.readObject();
+            Response res = (Response) ois.readObject();
             // AssertEquals(res.getData(), "ok");
         }
 
