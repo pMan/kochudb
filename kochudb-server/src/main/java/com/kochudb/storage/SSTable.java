@@ -3,8 +3,8 @@ package com.kochudb.storage;
 import static com.kochudb.k.K.DATA_FILE_EXT;
 import static com.kochudb.k.K.INDEX_FILE_EXT;
 import static com.kochudb.k.Record.KEY;
-import static com.kochudb.k.Record.VALUE;
 import static com.kochudb.utils.ByteUtil.bytesToInt;
+import static com.kochudb.utils.ByteUtil.intToBytes;
 import static com.kochudb.utils.ByteUtil.longToBytes;
 
 import java.io.FileNotFoundException;
@@ -20,7 +20,6 @@ import org.apache.logging.log4j.Logger;
 
 import com.kochudb.types.ByteArray;
 import com.kochudb.types.KochuDoc;
-import com.kochudb.utils.ByteUtil;
 import com.kochudb.utils.FileUtil;
 
 public class SSTable {
@@ -159,7 +158,14 @@ public class SSTable {
      */
     public long appendData(RandomAccessFile raf, byte[] data) throws IOException {
         long offset = raf.length();
-        raf.write(data);
+        
+        byte[] bytesToWrite = new  byte[data.length + Integer.BYTES];
+        byte[] leng = intToBytes(Integer.BYTES, data.length);
+        
+        System.arraycopy(leng, 0, bytesToWrite, 0, Integer.BYTES);
+        System.arraycopy(data, 0, bytesToWrite, Integer.BYTES, data.length);
+        
+        raf.write(bytesToWrite);
         return offset;
     }
 
@@ -173,21 +179,11 @@ public class SSTable {
     public KochuDoc readKochuDoc(Long offset) {
         try (RandomAccessFile raf = new RandomAccessFile(dataFile, "r")) {
 
-            byte[] timeBytes = readBytes(raf, offset, Long.BYTES);
-            offset += Long.BYTES;
-
-            int keyLen = bytesToInt(readBytes(raf, offset, KEY.length));
-            offset += KEY.length;
-
-            byte[] keyData = readBytes(raf, offset, keyLen);
-            offset += keyLen;
-
-            int valLen = bytesToInt(readBytes(raf, offset, VALUE.length));
-            offset += VALUE.length;
-
-            byte[] valueData = readBytes(raf, offset, valLen);
-
-            return KochuDoc.deserialize(keyData, valueData, ByteUtil.bytesToLong(timeBytes));
+            byte[] lengthBytes = readBytes(raf, offset, Integer.BYTES);
+            int lengthOfData = bytesToInt(lengthBytes);
+            
+            byte[] kochuDocBytes = readBytes(raf, offset + Integer.BYTES, lengthOfData);
+            return KochuDoc.deserialize(kochuDocBytes);
         } catch (FileNotFoundException e) {
             return new KochuDoc(null, "File could not be found on the disk".getBytes(), 0);
         } catch (IOException e) {
