@@ -10,6 +10,7 @@ import static com.kochudb.utils.ByteUtil.longToBytes;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -32,10 +33,6 @@ public class KochuDoc implements Comparable<KochuDoc> {
         this.lastModified = modifiedAt;
     }
 
-    public static KochuDoc deserialize(byte[] key, byte[] value, long timestamp) {
-        return new KochuDoc(unzip(key), unzip(value), timestamp);
-    }
-
     /**
      * create an instance of this class from bytes
      * 
@@ -45,7 +42,9 @@ public class KochuDoc implements Comparable<KochuDoc> {
     public static KochuDoc deserialize(byte[] bytes) {
         byte[] timeBytes = new byte[Long.BYTES];
         int curPos = 0;
-
+        
+       	bytes = unzip(bytes);
+        
         System.arraycopy(bytes, 0, timeBytes, 0, Long.BYTES);
         long timestamp = bytesToLong(timeBytes);
         curPos += Long.BYTES;
@@ -67,7 +66,7 @@ public class KochuDoc implements Comparable<KochuDoc> {
         byte[] value = new byte[valueSize];
         System.arraycopy(bytes, curPos, value, 0, value.length);
 
-        return new KochuDoc(unzip(key), unzip(value), timestamp);
+        return new KochuDoc(key, value, timestamp);
     }
 
     /**
@@ -77,8 +76,8 @@ public class KochuDoc implements Comparable<KochuDoc> {
      * @return byte[]
      */
     public byte[] serialize() {
-        byte[] keyData = zip(this.key.bytes());
-        byte[] valData = zip(this.value.bytes());
+        byte[] keyData = this.key.bytes();
+        byte[] valData = this.value.bytes();
         byte[] timeData = longToBytes(this.lastModified);
 
         byte[] bytes = new byte[KEY.length + VALUE.length + Long.BYTES + keyData.length + valData.length
@@ -108,7 +107,7 @@ public class KochuDoc implements Comparable<KochuDoc> {
         System.arraycopy(valData, 0, bytes, curPos, valData.length);
         curPos += valData.length;
 
-        return bytes;
+        return zip(bytes);
     }
 
     private static byte[] zip(byte[] bytes) {

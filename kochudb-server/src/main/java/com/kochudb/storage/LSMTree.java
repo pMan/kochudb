@@ -159,6 +159,9 @@ public class LSMTree implements KVStorage {
             try {
                 memTableQueue.add(memTable);
                 memTable = new SkipList();
+                if (memTableQueue.size() > 5) {
+                	// create new WAL
+                }
             } finally {
                 memTableQueue.peekLast().writeLock.unlock();
             }
@@ -175,6 +178,7 @@ public class LSMTree implements KVStorage {
             return new KochuDoc(null, "Error: Value too long. Max allowed size is 4MB".getBytes(), 0L);
 
         memTable.put(doc);
+        // append WAL
         curSkipListSize += doc.length();
 
         return doc;
@@ -187,6 +191,7 @@ public class LSMTree implements KVStorage {
     public KochuDoc del(byte[] key) {
         KochuDoc doc = new KochuDoc(key, null, Instant.now().toEpochMilli());
         memTable.put(doc);
+        // append WAL
         return doc;
     }
 }
