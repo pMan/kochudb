@@ -19,111 +19,112 @@ import org.junit.jupiter.api.Test;
 import com.kochudb.storage.LSMTree;
 import com.kochudb.storage.SSTable;
 import com.kochudb.storage.SkipList;
+import com.kochudb.utils.FileUtil;
 
 class SegmentTest {
 
-    private static SSTable seg;
+	private static SSTable seg;
 
-    static File dataDir;
+	static File dataDir;
 
-    static LSMTree lsmt;
-    static Properties props = new Properties();
+	static LSMTree lsmt;
+	static Properties props = new Properties();
 
-    @BeforeAll
-    static void setup() throws FileNotFoundException, IOException {
-        props.put("data.dir", System.getProperty("java.io.tmpdir"));
+	@BeforeAll
+	static void setup() throws FileNotFoundException, IOException {
+		props.put("data.dir", System.getProperty("java.io.tmpdir"));
 
-        File dataDir = new File(props.getProperty("data.dir"));
-        dataDir.mkdirs();
-        dataDir.deleteOnExit();
+		File dataDir = new File(props.getProperty("data.dir"));
+		dataDir.mkdirs();
+		dataDir.deleteOnExit();
 
-        lsmt = new LSMTree(props);
+		lsmt = new LSMTree(props);
 
-        seg = new SSTable(0, "testfile.idx");
-    }
+		seg = new SSTable(0, "testfile.idx");
+	}
 
-    @Test
-    void testWriteIndexFile() throws Exception {
-        // Setup
-        final Map<ByteArray, Long> keyToOffset = Map.ofEntries(Map.entry(new ByteArray("t"), 10L));
+	@Test
+	void testWriteIndexFile() throws Exception {
+		// Setup
+		final Map<ByteArray, Long> keyToOffset = Map.ofEntries(Map.entry(new ByteArray("t"), 10L));
 
-        // Segment seg = new Segment(0);
-        // Run the test
-        seg.saveIndex(keyToOffset);
+		// Segment seg = new Segment(0);
+		// Run the test
+		seg.saveIndex(keyToOffset);
 
-        // Verify the results
-    }
+		// Verify the results
+	}
 
-    @Test
-    static void testReadIndexFile() {
-        // Setup
-        // Run the test
-        final SkipList result = seg.parseIndex();
+	@Test
+	static void testReadIndexFile() {
+		// Setup
+		// Run the test
+		final SkipList result = seg.parseIndex();
 
-        assertTrue(result.containsKey(new KochuDoc("t".getBytes(), null, 0L)));
-        assertEquals(0L, result.get(new KochuDoc("t".getBytes(), null, 0L)));
-    }
+		assertTrue(result.containsKey(new KochuDoc("t".getBytes(), null, 0L)));
+		assertEquals(0L, result.get(new KochuDoc("t".getBytes(), null, 0L)));
+	}
 
-    @Test
-    static void testAppendData() throws Exception {
-        // Setup
-        final RandomAccessFile dataFile = new RandomAccessFile(seg.getDataFile(), "r");
+	@Test
+	static void testAppendData() throws Exception {
+		// Setup
+		final RandomAccessFile dataFile = new RandomAccessFile(seg.getDataFile(), "r");
 
-        // Run the test
-        // final long result = FileIO.appendData(dataFile, "t".getBytes(), Record.KEY);
+		// Run the test
+		// final long result = FileIO.appendData(dataFile, "t".getBytes(), Record.KEY);
 
-        assertThrows(IOException.class, () -> seg.appendData(dataFile, "t".getBytes()));
-        // Verify the results
-        // assertEquals(0L, result);
+		assertThrows(IOException.class, () -> seg.appendData(dataFile, "t".getBytes()));
+		// Verify the results
+		// assertEquals(0L, result);
 
-        seg.openDataFileForWrite().close();
-    }
+		seg.openDataFileForWrite().close();
+	}
 
-    @Test
-    void testAppendData_ThrowsIOException() throws Exception {
-        // Setup
-        File f = new File("./filename.kdb");
-        f.deleteOnExit();
-        final RandomAccessFile dataFile = new RandomAccessFile(f, "r");
+	@Test
+	void testAppendData_ThrowsIOException() throws Exception {
+		// Setup
+		File f = new File("./filename.kdb");
+		f.deleteOnExit();
+		final RandomAccessFile dataFile = new RandomAccessFile(f, "r");
 
-        // Run the test
-        assertThrows(IOException.class, () -> seg.appendData(dataFile, "content".getBytes()));
+		// Run the test
+		assertThrows(IOException.class, () -> seg.appendData(dataFile, "content".getBytes()));
 
-        dataFile.close();
-    }
+		dataFile.close();
+	}
 
-    @Test
-    void testReadBytes() throws Exception {
-        // Setup
-        final RandomAccessFile raf = new RandomAccessFile("filename", "r");
+	@Test
+	void testReadBytes() throws Exception {
+		// Setup
+		final RandomAccessFile raf = new RandomAccessFile("filename", "r");
 
-        // Run the test
-        final byte[] result = seg.readBytes(raf, 0L, 1);
-        raf.close();
+		// Run the test
+		final byte[] result = FileUtil.readBytes(raf, 0L, 1);
+		raf.close();
 
-        // Verify the results
-        assertArrayEquals(new byte[] { 99 }, result);
-    }
+		// Verify the results
+		assertArrayEquals(new byte[] { 99 }, result);
+	}
 
-    @Test
-    void testReadBytes_ThrowsIOException() throws Exception {
-        // Setup
-        final RandomAccessFile raf = new RandomAccessFile("./filename", "r");
+	@Test
+	void testReadBytes_ThrowsIOException() throws Exception {
+		// Setup
+		final RandomAccessFile raf = new RandomAccessFile("./filename", "r");
 
-        // Run the test
-        assertThrows(FileNotFoundException.class,
-                () -> seg.readBytes(new RandomAccessFile("./filename/123", "r"), 0L, 1));
+		// Run the test
+		assertThrows(FileNotFoundException.class,
+				() -> FileUtil.readBytes(new RandomAccessFile("./filename/123", "r"), 0L, 1));
 
-        raf.close();
-    }
+		raf.close();
+	}
 
-    @AfterAll
-    static void teardown() throws IOException {
-        File f = new File(seg.getIndexFile());
-        f.delete();
+	@AfterAll
+	static void teardown() throws IOException {
+		File f = new File(seg.getIndexFile());
+		f.delete();
 
-        f = new File(seg.getDataFile());
-        f.delete();
-    }
+		f = new File(seg.getDataFile());
+		f.delete();
+	}
 
 }

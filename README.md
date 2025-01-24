@@ -32,7 +32,7 @@ Implemented based on Log-Structured Merge (LSM) tree.
 - Keys are restricted to 256 bytes long `String` types, where as values can be any `Serializable` object of size 4MB.
 
 ## How to run
-Use the shell scripts (`build-all.sh`, `start-server.sh`, `start-client.sh` in that order) on Unix systems, or run manually by using below commands.
+Use the shell scripts (`build-all.sh`, `start-server.sh`, `load-test-data.sh`, `start-client.sh` in that order) on Unix systems, or run manually by using below commands.
 #### Clone and build kochudb
 ```
 > git clone https://github.com/pMan/kochudb.git
@@ -74,7 +74,7 @@ Shutting down client
 ```
 ## Possible improvements
 * __Bloomfilter__ - for lookup optimization
-* __Write-Ahead Log__ - to improve durability
+* ~~__Write-Ahead Log__ - to improve durability~~ - Done
 * __Sparse indexes__ - for search optimization
 * __Data Compression__ - for storage efficiency
 
