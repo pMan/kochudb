@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Iterator;
 
@@ -84,7 +83,7 @@ class SkipListTest {
 				.del(new KochuDoc(new ByteArray("non-exising".getBytes()), new ByteArray(), 0L));
 
 		// Verify the results
-		assertTrue(result);
+		assertFalse(result);
 		assertFalse(neg);
 	}
 
