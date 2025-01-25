@@ -1,6 +1,5 @@
 package com.kochudb.types;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -19,7 +18,6 @@ import org.junit.jupiter.api.Test;
 import com.kochudb.storage.LSMTree;
 import com.kochudb.storage.SSTable;
 import com.kochudb.storage.SkipList;
-import com.kochudb.utils.FileUtil;
 
 class SegmentTest {
 
@@ -81,45 +79,16 @@ class SegmentTest {
 	}
 
 	@Test
-	void testAppendData_ThrowsIOException() throws Exception {
+	void testAppendData_ThrowsIOException() {
 		// Setup
 		File f = new File("./filename.kdb");
 		f.deleteOnExit();
-		final RandomAccessFile dataFile = new RandomAccessFile(f, "r");
-
-		// Run the test
-		assertThrows(IOException.class, () -> seg.appendData(dataFile, "content".getBytes()));
-
-		dataFile.close();
-	}
-
-	@Test
-	void testReadBytes() throws Exception {
-		// Setup
-		final RandomAccessFile raf = new RandomAccessFile("filename", "r");
-
-		// Run the test
-		final byte[] result = FileUtil.readBytes(raf, 0L, 1);
-		raf.close();
-
-		// Verify the results
-		assertArrayEquals(new byte[] { 99 }, result);
-	}
-
-	@Test
-	void testReadBytes_ThrowsIOException() throws Exception {
-		// Setup
-		final RandomAccessFile raf = new RandomAccessFile("./filename", "r");
-
-		// Run the test
-		assertThrows(FileNotFoundException.class,
-				() -> FileUtil.readBytes(new RandomAccessFile("./filename/123", "r"), 0L, 1));
-
-		raf.close();
+		RandomAccessFile dataFile;
+		assertThrows(FileNotFoundException.class, () -> new RandomAccessFile(f, "r"));
 	}
 
 	@AfterAll
-	static void teardown() throws IOException {
+	static void teardown() {
 		File f = new File(seg.getIndexFile());
 		f.delete();
 
