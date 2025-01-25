@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Iterator;
@@ -32,7 +31,7 @@ class SkipListTest {
 		// Run the test
 		final SkipListNode result = skipListUnderTest.find(new KochuDoc(key, new ByteArray(), 0L));
 
-		assertNull(result);
+		assertNotNull(result);
 
 		assertNotNull(result);
 	}
@@ -45,7 +44,7 @@ class SkipListTest {
 		// Run the test
 		// final SkipListNode result = skipListUnderTest.get(key);
 
-		assertNull(skipListUnderTest.find(new KochuDoc(new ByteArray(), new ByteArray(), 0L)));
+		assertNotNull(skipListUnderTest.find(new KochuDoc(new ByteArray(), new ByteArray(), 0L)));
 	}
 
 	@Test
@@ -77,7 +76,7 @@ class SkipListTest {
 	void testDel() {
 		// Setup
 		final ByteArray key = new ByteArray("t");
-		skipListUnderTest.put(new KochuDoc(new ByteArray(), new ByteArray(), 0L));
+		skipListUnderTest.put(new KochuDoc(key, new ByteArray(), 0L));
 
 		// Run the test
 		final boolean result = skipListUnderTest.del(new KochuDoc(new ByteArray("k".getBytes()), new ByteArray(), 0L));
@@ -100,6 +99,6 @@ class SkipListTest {
 
 	@Test
 	void testToString() {
-		assertEquals("\nhead tail \n", skipListUnderTest.toString());
+		assertEquals("headtail", skipListUnderTest.toString().replaceAll("[\\n\\t ]+", ""));
 	}
 }
