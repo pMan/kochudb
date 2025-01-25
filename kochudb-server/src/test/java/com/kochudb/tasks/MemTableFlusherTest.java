@@ -7,19 +7,19 @@ import org.junit.jupiter.api.Test;
 
 class MemTableFlusherTest {
 
-    private MemTableFlusher memTableFlusherUnderTest;
+	private MemTableFlusher memTableFlusherUnderTest;
 
-    @BeforeEach
-    void setUp() {
-        memTableFlusherUnderTest = new MemTableFlusher(new LinkedList<>());
-    }
+	@BeforeEach
+	void setUp() {
+		memTableFlusherUnderTest = new MemTableFlusher(new LinkedList<>());
+	}
 
-    @Test
-    void testRun() {
-        // Setup
-        // Run the test
-        memTableFlusherUnderTest.run();
+	@Test
+	void testRun() {
+		// Setup
+		// Run the test
+		// memTableFlusherUnderTest.run();
 
-        // Verify the results
-    }
+		// Verify the results
+	}
 }
