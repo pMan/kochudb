@@ -102,7 +102,7 @@
   </dependencies>
   <properties>
     <maven.compiler.target>17</maven.compiler.target>
-    <version>0.0.1</version>
     <maven.compiler.source>17</maven.compiler.source>
+    <version>0.0.1</version>
   </properties>
 </project>
