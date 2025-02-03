@@ -10,9 +10,8 @@ import static com.kochudb.utils.ByteUtil.longToBytes;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
+import java.util.zip.DeflaterOutputStream;
+import java.util.zip.InflaterInputStream;
 
 import com.kochudb.utils.ByteUtil;
 
@@ -42,9 +41,9 @@ public class KochuDoc implements Comparable<KochuDoc> {
     public static KochuDoc deserialize(byte[] bytes) {
         byte[] timeBytes = new byte[Long.BYTES];
         int curPos = 0;
-        
-       	bytes = unzip(bytes);
-        
+
+        bytes = unzip(bytes);
+
         System.arraycopy(bytes, 0, timeBytes, 0, Long.BYTES);
         long timestamp = bytesToLong(timeBytes);
         curPos += Long.BYTES;
@@ -112,9 +111,8 @@ public class KochuDoc implements Comparable<KochuDoc> {
 
     private static byte[] zip(byte[] bytes) {
         ByteArrayOutputStream bytesStream = new ByteArrayOutputStream();
-        try (GZIPOutputStream zip = new GZIPOutputStream(bytesStream)) {
+        try (DeflaterOutputStream zip = new DeflaterOutputStream(bytesStream)) {
             zip.write(bytes);
-            zip.close();
             return bytesStream.toByteArray();
         } catch (IOException e) {
             e.printStackTrace();
@@ -125,7 +123,7 @@ public class KochuDoc implements Comparable<KochuDoc> {
 
     private static byte[] unzip(byte[] zippedBytes) {
         ByteArrayInputStream bytesStream = new ByteArrayInputStream(zippedBytes);
-        try (GZIPInputStream unzip = new GZIPInputStream(bytesStream)) {
+        try (InflaterInputStream unzip = new InflaterInputStream(bytesStream)) {
             return unzip.readAllBytes();
         } catch (IOException e) {
             e.printStackTrace();
