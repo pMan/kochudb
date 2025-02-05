@@ -76,7 +76,7 @@ Shutting down client
 * __Bloomfilter__ - for lookup optimization
 * ~~__Write-Ahead Log__ - to improve durability~~ - Done
 * __Sparse indexes__ - for search optimization
-* __Data Compression__ - for storage efficiency
+* ~~__Data Compression__ - for storage efficiency~~ - Done
 
 ### Disclaimer
 Not production-ready, not meant to be.
